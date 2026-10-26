@@ -24,8 +24,24 @@ public sealed record Display(int OutputIndex, PixelRect Bounds)
     public bool IsPrimary => Bounds.X == 0 && Bounds.Y == 0;
 }
 
-/// <summary>What to grab: OutputIndex null means gdigrab over the virtual desktop with absolute coordinates.</summary>
-public readonly record struct CaptureArea(int? OutputIndex, PixelRect Rect);
+/// <summary>A monitor as Windows sees it (any GPU); Handle is the HMONITOR that gfxcapture takes.</summary>
+public sealed record MonitorInfo(long Handle, PixelRect Bounds);
+
+public enum Grabber
+{
+    /// <summary>Windows Graphics Capture (gfxcapture): GPU, real frame timestamps, any GPU's monitor. Smoothest.</summary>
+    GraphicsCapture,
+    /// <summary>Desktop Duplication (ddagrab): GPU, adapter 0 only. Fallback when gfxcapture is unavailable.</summary>
+    DesktopDuplication,
+    /// <summary>GDI (gdigrab): CPU, the only one that can span several monitors.</summary>
+    Gdi,
+}
+
+/// <summary>
+/// What to grab. Rect is relative to the monitor for GraphicsCapture/DesktopDuplication and absolute
+/// (virtual desktop) for Gdi. OutputIndex is ddagrab's output_idx, Monitor is set for GraphicsCapture.
+/// </summary>
+public readonly record struct CaptureArea(Grabber Grabber, PixelRect Rect, int OutputIndex = 0, MonitorInfo? Monitor = null);
 
 public static class Displays
 {
@@ -57,17 +73,25 @@ public static class Displays
     /// <summary>yuv420 encoders need even dimensions.</summary>
     public static PixelRect Even(PixelRect r) => r with { Width = Math.Max(2, r.Width & ~1), Height = Math.Max(2, r.Height & ~1) };
 
-    /// <summary>Region fully on one monitor → ddagrab (GPU), otherwise gdigrab clamped to the desktop.</summary>
-    public static CaptureArea Locate(PixelRect region, IReadOnlyList<Display> displays)
+    /// <summary>
+    /// Region fully on one monitor → gfxcapture when available (pass its monitors), else ddagrab;
+    /// spanning monitors → gdigrab clamped to the desktop.
+    /// </summary>
+    public static CaptureArea Locate(PixelRect region, IReadOnlyList<Display> displays, IReadOnlyList<MonitorInfo>? graphicsCaptureMonitors = null)
     {
         region = Even(region);
+        foreach (var m in graphicsCaptureMonitors ?? [])
+            if (m.Bounds.Contains(region))
+                return new CaptureArea(Grabber.GraphicsCapture, Relative(region, m.Bounds), Monitor: m);
         foreach (var d in displays)
             if (d.Bounds.Contains(region))
-                return new CaptureArea(d.OutputIndex, region with { X = region.X - d.Bounds.X, Y = region.Y - d.Bounds.Y });
+                return new CaptureArea(Grabber.DesktopDuplication, Relative(region, d.Bounds), d.OutputIndex);
 
         var desk = VirtualDesktop(displays);
         int x = Math.Clamp(region.X, desk.X, desk.Right - 2), y = Math.Clamp(region.Y, desk.Y, desk.Bottom - 2);
-        return new CaptureArea(null, Even(new PixelRect(x, y,
+        return new CaptureArea(Grabber.Gdi, Even(new PixelRect(x, y,
             Math.Min(region.Right, desk.Right) - x, Math.Min(region.Bottom, desk.Bottom) - y)));
     }
+
+    static PixelRect Relative(PixelRect r, PixelRect monitor) => r with { X = r.X - monitor.X, Y = r.Y - monitor.Y };
 }

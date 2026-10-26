@@ -23,6 +23,7 @@ public partial class MainWindow : Window
     readonly DispatcherTimer statusTimer = new() { Interval = TimeSpan.FromMilliseconds(500) };
     string? ffmpeg;
     List<VideoEncoder>? encoders;
+    bool graphicsCapture; // gfxcapture usable: smoother than ddagrab and works on every GPU's monitor
     RecordingSession? session;
     bool busy, minimizedForRecording;
 
@@ -58,7 +59,9 @@ public partial class MainWindow : Window
             MessageBox.Show(this, Strings.FfmpegMissing, Title, MessageBoxButton.OK, MessageBoxImage.Error);
             return;
         }
+        var detectGraphicsCapture = Encoders.GraphicsCaptureWorksAsync(ffmpeg);
         encoders = await Encoders.DetectAsync(ffmpeg);
+        graphicsCapture = await detectGraphicsCapture;
         Title = "Screenrecorder";
         if (encoders.Count == 0)
         {
@@ -188,7 +191,8 @@ public partial class MainWindow : Window
             default: rect = frame.Region; break;
         }
 
-        var options = new RecordOptions(Displays.Locate(rect, displays), encoders!.First(x => x.Name == settings.Encoder),
+        var area = Displays.Locate(rect, displays, graphicsCapture ? Native.Monitors() : null);
+        var options = new RecordOptions(area, encoders!.First(x => x.Name == settings.Encoder),
             settings.Fps, settings.Quality, settings.ShowCursor, settings.SystemAudio, settings.Microphone);
         try
         {
@@ -421,10 +425,7 @@ public partial class MainWindow : Window
                 items.Add(Item(group.Key, () => { }, enabled: false));
                 items.AddRange(group.Select(x => Item(x.Label, () => settings.Encoder = x.Name, x.Name == settings.Encoder)));
             }
-        items.Add(new Separator());
-        foreach (var fps in new[] { 30, 60 })
-            items.Add(Item($"{fps} fps", () => settings.Fps = fps, settings.Fps == fps));
-        ShowMenu(CodecsButton, items);
+        ShowMenu(CodecsButton, items); // frame rate lives in Settings > Recording
     }
 
     void Sound_Click(object sender, RoutedEventArgs e) => ShowMenu(SoundButton,

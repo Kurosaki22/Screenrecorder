@@ -29,6 +29,7 @@ public class RecorderIntegrationTests(ITestOutputHelper log)
         var displays = Displays.Enumerate();
         if (ffmpeg is null || displays.Count == 0) return; // no environment to record in
 
+        using var heartbeat = new Heartbeat(); // gfxcapture needs screen changes, like the app's mini bar provides
         var output = TempFile();
         try
         {
@@ -60,6 +61,7 @@ public class RecorderIntegrationTests(ITestOutputHelper log)
         var displays = Displays.Enumerate();
         if (ffmpeg is null || !displays.Any(d => d.IsPrimary)) return;
 
+        using var heartbeat = new Heartbeat(); // gfxcapture needs screen changes, like the app's mini bar provides
         var output = TempFile();
         try
         {
@@ -99,6 +101,7 @@ public class RecorderIntegrationTests(ITestOutputHelper log)
         var displays = Displays.Enumerate();
         if (ffmpeg is null || displays.Count == 0) return;
 
+        using var heartbeat = new Heartbeat(); // gfxcapture needs screen changes, like the app's mini bar provides
         var output = TempFile();
         try
         {
@@ -126,7 +129,7 @@ public class RecorderIntegrationTests(ITestOutputHelper log)
     }
 
     static RecordOptions Options(IReadOnlyList<Display> displays, PixelRect rect) =>
-        new(Displays.Locate(rect, displays), Encoder, 30, 80, ShowCursor: true, SystemAudio: true, Microphone: false);
+        new(Displays.Locate(rect, displays, Native.Monitors()), Encoder, 30, 80, ShowCursor: true, SystemAudio: true, Microphone: false);
 
     /// <summary>Duration per stream codec, e.g. { h264: 3.0, opus: 2.99 }.</summary>
     static Dictionary<string, double> Streams(string file) =>
@@ -184,6 +187,24 @@ public class RecorderIntegrationTests(ITestOutputHelper log)
 }
 
 /// <summary>
+/// Tiny window excluded from capture that flips its color every 30 ms, like the app's mini bar: Windows Graphics
+/// Capture only delivers frames when the screen changes, so recordings of an idle screen need it.
+/// </summary>
+sealed class Heartbeat() : TestForm(() =>
+{
+    var form = new Form
+    {
+        FormBorderStyle = FormBorderStyle.None, TopMost = true, ShowInTaskbar = false,
+        StartPosition = FormStartPosition.Manual, Bounds = new Rectangle(1000, 600, 20, 20), BackColor = Color.Black,
+    };
+    form.HandleCreated += (_, _) => Native.ExcludeFromCapture(form.Handle);
+    var timer = new System.Windows.Forms.Timer { Interval = 30, Enabled = true };
+    timer.Tick += (_, _) => form.BackColor = form.BackColor.R == 0 ? Color.FromArgb(1, 1, 1) : Color.Black;
+    form.FormClosed += (_, _) => timer.Dispose();
+    return form;
+});
+
+/// <summary>
 /// A WinForms window shown until disposed (per-monitor DPI aware = physical pixels). All test windows share one
 /// long-lived STA UI thread: windows created after an earlier Application.Run had ended never appeared on screen.
 /// </summary>
@@ -230,32 +251,39 @@ class TestForm : IDisposable
 [Collection("Desktop")] // these tests put windows on the real screen; run them one after another
 public class ExcludeFromCaptureTests
 {
-    [Fact]
-    public void Excluded_window_does_not_show_up_in_desktop_duplication()
+    [Theory]
+    [InlineData(Grabber.GraphicsCapture)]
+    [InlineData(Grabber.DesktopDuplication)]
+    public void Excluded_window_does_not_show_up_in_the_capture(Grabber grabber)
     {
         if (Recorder.FindFfmpeg() is not string ffmpeg || Displays.Enumerate().FirstOrDefault(d => d.IsPrimary) is not Display primary) return;
+        var monitor = Native.Monitors().First(m => m.Bounds.X == 0 && m.Bounds.Y == 0);
+        // Top-left 200x150 of the primary monitor, the corner the red test window covers.
+        var source = grabber == Grabber.GraphicsCapture
+            ? $"gfxcapture=hmonitor={monitor.Handle}:crop_right={monitor.Bounds.Width - 200}:crop_bottom={monitor.Bounds.Height - 150}"
+            : $"ddagrab=output_idx={primary.OutputIndex}:video_size=200x150";
         using var window = new TestForm(() => new Form
         {
             FormBorderStyle = FormBorderStyle.None, TopMost = true, ShowInTaskbar = false,
             StartPosition = FormStartPosition.Manual, Bounds = new Rectangle(0, 0, 300, 200), BackColor = Color.Red,
         });
         Thread.Sleep(500);
-        var before = AverageColor(ffmpeg, primary.OutputIndex);
+        var before = AverageColor(ffmpeg, source);
         Assert.True(IsRed(before), $"control: the red window should be captured before it is excluded, got {before}");
 
         Assert.True(window.Invoke(f => Native.ExcludeFromCapture(f.Handle)));
         Thread.Sleep(500);
-        var after = AverageColor(ffmpeg, primary.OutputIndex);
+        var after = AverageColor(ffmpeg, source);
         Assert.False(IsRed(after), $"excluded window still appears in the capture: {after}");
     }
 
     static bool IsRed((int R, int G, int B) c) => c.R > 200 && c.G < 60 && c.B < 60;
 
-    /// <summary>Grabs the 200x150 top-left corner of the monitor via ddagrab and averages it to one RGB pixel.</summary>
-    static (int R, int G, int B) AverageColor(string ffmpeg, int outputIndex)
+    /// <summary>Grabs one frame from the lavfi source and averages it to one RGB pixel.</summary>
+    static (int R, int G, int B) AverageColor(string ffmpeg, string source)
     {
         var psi = new ProcessStartInfo(ffmpeg,
-            $"-hide_banner -loglevel error -f lavfi -i ddagrab=output_idx={outputIndex}:video_size=200x150 -frames:v 1 " +
+            $"-hide_banner -loglevel error -f lavfi -i {source} -frames:v 1 " +
             "-vf hwdownload,format=bgra,scale=1:1:flags=area,format=rgb24 -f rawvideo -")
         { RedirectStandardOutput = true, CreateNoWindow = true };
         using var p = Process.Start(psi)!;

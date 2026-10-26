@@ -75,4 +75,7 @@
   <data name="Reset" xml:space="preserve"><value>Reset</value></data>
   <data name="Version" xml:space="preserve"><value>Version {0}</value></data>
   <data name="FfmpegInUse" xml:space="preserve"><value>FFmpeg in use: {0}</value></data>
+  <data name="Fps" xml:space="preserve"><value>Frame rate (fps)</value></data>
+  <data name="FpsHint" xml:space="preserve"><value>Pick a value or type any whole number from 1 to 240. More fps look smoother but make larger files; more than your monitor's refresh rate adds nothing.</value></data>
+  <data name="InvalidFps" xml:space="preserve"><value>Invalid frame rate: {0}. Please enter a whole number from 1 to 240.</value></data>
 </root>

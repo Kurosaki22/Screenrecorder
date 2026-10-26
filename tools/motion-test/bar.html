@@ -1,0 +1,23 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>motion-test</title>
+<style>html, body { margin: 0; height: 100%; background: #000; overflow: hidden; } canvas { display: block; }</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script>
+// White bar moving at a constant 960 CSS px/s, redrawn every display refresh (requestAnimationFrame = vsync).
+const c = document.getElementById('c'), g = c.getContext('2d');
+function frame(now) {
+  const w = c.width = innerWidth * devicePixelRatio, h = c.height = innerHeight * devicePixelRatio;
+  const bar = 20 * devicePixelRatio, x = (now / 1000 * 960 * devicePixelRatio) % (w - bar);
+  g.fillStyle = '#000'; g.fillRect(0, 0, w, h);
+  g.fillStyle = '#fff'; g.fillRect(x, 0, bar, h);
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

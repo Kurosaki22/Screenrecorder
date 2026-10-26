@@ -57,6 +57,12 @@ public sealed class Settings
         File.WriteAllText(FilePath, JsonSerializer.Serialize(this, new JsonSerializerOptions { WriteIndented = true }));
     }
 
+    /// <summary>Frame rates offered in the settings; any whole number 1–240 may be typed in.</summary>
+    public static readonly int[] FpsPresets = [24, 25, 30, 48, 50, 60, 72, 90, 100, 120, 144, 165, 240];
+
+    public static bool TryParseFps(string text, out int fps) =>
+        int.TryParse(text.Trim(), out fps) && fps is >= 1 and <= 240;
+
     public static bool TryParseSize(string text, out int width, out int height)
     {
         width = height = 0;

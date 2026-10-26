@@ -253,6 +253,25 @@ public class SettingsTests
     }
 
     [Theory]
+    [InlineData("24", 24)]
+    [InlineData(" 60 ", 60)]
+    [InlineData("1", 1)]
+    [InlineData("240", 240)]
+    public void Accepts_frame_rates_from_1_to_240(string text, int expected)
+    {
+        Assert.True(Settings.TryParseFps(text, out var fps));
+        Assert.Equal(expected, fps);
+    }
+
+    [Theory]
+    [InlineData("0")]
+    [InlineData("241")]
+    [InlineData("abc")]
+    [InlineData("29.97")]
+    [InlineData("")]
+    public void Rejects_invalid_frame_rates(string text) => Assert.False(Settings.TryParseFps(text, out _));
+
+    [Theory]
     [InlineData("")]
     [InlineData("1280")]
     [InlineData("axb")]

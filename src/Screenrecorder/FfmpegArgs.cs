@@ -16,12 +16,27 @@ public static class FfmpegArgs
         // -progress: key=value lines on stdout every 0.5 s (total_size drives the size display).
         var a = new List<string> { "-hide_banner", "-loglevel", "error", "-nostats", "-progress", "pipe:1", "-stats_period", "0.5", "-y" };
 
-        if (o.Area.OutputIndex is int idx)
-            a.AddRange(["-f", "lavfi", "-i",
-                $"ddagrab=output_idx={idx}:framerate={o.Fps}:video_size={r.Width}x{r.Height}:offset_x={r.X}:offset_y={r.Y}:draw_mouse={mouse}"]);
-        else
-            a.AddRange(["-f", "gdigrab", "-framerate", $"{o.Fps}", "-offset_x", $"{r.X}", "-offset_y", $"{r.Y}",
-                "-video_size", $"{r.Width}x{r.Height}", "-draw_mouse", mouse, "-i", "desktop"]);
+        var filters = new List<string>();
+        switch (o.Area.Grabber)
+        {
+            case Grabber.GraphicsCapture:
+                var m = o.Area.Monitor!.Bounds;
+                // Sample at up to 240 Hz with real timestamps, then pick evenly spaced frames: measured on a 240 Hz
+                // screen this halves motion judder compared to ddagrab at the target rate and never drops a frame.
+                a.AddRange(["-f", "lavfi", "-i",
+                    $"gfxcapture=hmonitor={o.Area.Monitor.Handle}:max_framerate={Math.Max(240, o.Fps)}:capture_cursor={mouse}" +
+                    $":crop_left={r.X}:crop_top={r.Y}:crop_right={m.Width - r.Right}:crop_bottom={m.Height - r.Bottom}"]);
+                filters.Add($"fps={o.Fps}");
+                break;
+            case Grabber.DesktopDuplication:
+                a.AddRange(["-f", "lavfi", "-i",
+                    $"ddagrab=output_idx={o.Area.OutputIndex}:framerate={o.Fps}:video_size={r.Width}x{r.Height}:offset_x={r.X}:offset_y={r.Y}:draw_mouse={mouse}"]);
+                break;
+            default:
+                a.AddRange(["-f", "gdigrab", "-framerate", $"{o.Fps}", "-offset_x", $"{r.X}", "-offset_y", $"{r.Y}",
+                    "-video_size", $"{r.Width}x{r.Height}", "-draw_mouse", mouse, "-i", "desktop"]);
+                break;
+        }
 
         foreach (var input in audio)
             a.AddRange(["-f", input.SampleFormat, "-ar", $"{input.SampleRate}",
@@ -36,8 +51,11 @@ public static class FfmpegArgs
             a.AddRange(["-filter_complex", $"{inputs}amix=inputs={audio.Count}:normalize=0[a]", "-map", "[a]"]);
         }
 
-        if (o.Area.OutputIndex is not null && !o.Encoder.TakesD3D11)
-            a.AddRange(["-vf", "hwdownload,format=bgra"]);
+        // GPU grabbers deliver D3D11 frames; encoders that can't take them get a download to system memory.
+        if (o.Area.Grabber != Grabber.Gdi && !o.Encoder.TakesD3D11)
+            filters.Add("hwdownload,format=bgra");
+        if (filters.Count > 0)
+            a.AddRange(["-vf", string.Join(",", filters)]);
 
         a.AddRange(["-c:v", o.Encoder.Name, .. o.Encoder.QualityArgs(o.Quality)]);
         // Opus: royalty-free; -ac 2 downmixes 5.1/7.1 loopback devices.

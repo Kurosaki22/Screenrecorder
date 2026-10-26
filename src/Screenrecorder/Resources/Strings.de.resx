@@ -75,4 +75,7 @@
   <data name="Reset" xml:space="preserve"><value>Zurücksetzen</value></data>
   <data name="Version" xml:space="preserve"><value>Version {0}</value></data>
   <data name="FfmpegInUse" xml:space="preserve"><value>Verwendetes FFmpeg: {0}</value></data>
+  <data name="Fps" xml:space="preserve"><value>Bildrate (fps)</value></data>
+  <data name="FpsHint" xml:space="preserve"><value>Wert auswählen oder eine ganze Zahl von 1 bis 240 eintippen. Mehr fps wirken flüssiger, machen die Datei aber größer; mehr als die Bildwiederholrate des Monitors bringt nichts.</value></data>
+  <data name="InvalidFps" xml:space="preserve"><value>Ungültige Bildrate: {0}. Bitte eine ganze Zahl von 1 bis 240 eingeben.</value></data>
 </root>

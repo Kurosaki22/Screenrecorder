@@ -12,23 +12,42 @@ public class FfmpegArgsTests
     static RecordOptions Options(CaptureArea area, VideoEncoder encoder, int fps = 30, int quality = 80, bool cursor = true) =>
         new(area, encoder, fps, quality, cursor, SystemAudio: false, Microphone: false);
 
-    static readonly CaptureArea Small = new(0, new PixelRect(0, 0, 640, 360));
+    static readonly CaptureArea Small = new(Grabber.DesktopDuplication, new PixelRect(0, 0, 640, 360));
+    static readonly MonitorInfo Monitor4K = new(12345, new PixelRect(0, 0, 3840, 2160));
+    static readonly CaptureArea Gfx = new(Grabber.GraphicsCapture, new PixelRect(100, 200, 1280, 720), Monitor: Monitor4K);
+    static CaptureArea Gdi(PixelRect r) => new(Grabber.Gdi, r);
 
     static string Line(List<string> args) => string.Join(' ', args);
 
     [Fact]
+    public void Graphics_capture_crops_the_monitor_samples_at_240_and_resamples_to_the_target_rate()
+    {
+        var line = Line(FfmpegArgs.Build(Options(Gfx, Nvenc, fps: 60), [], "o.mp4"));
+        Assert.Contains("gfxcapture=hmonitor=12345:max_framerate=240:capture_cursor=1:crop_left=100:crop_top=200:crop_right=2460:crop_bottom=1240", line);
+        Assert.Contains("-vf fps=60 ", line);
+    }
+
+    [Fact]
+    public void Graphics_capture_downloads_frames_for_cpu_side_encoders()
+    {
+        Assert.Contains("-vf fps=24,hwdownload,format=bgra ", Line(FfmpegArgs.Build(Options(Gfx, Mf, fps: 24), [], "o.mp4")));
+    }
+
+    [Fact]
     public void Ddagrab_gets_monitor_offset_and_size()
     {
-        var args = FfmpegArgs.Build(Options(new CaptureArea(1, new PixelRect(10, 20, 1280, 720)), Nvenc, fps: 60), [], "out.mp4");
+        var area = new CaptureArea(Grabber.DesktopDuplication, new PixelRect(10, 20, 1280, 720), OutputIndex: 1);
+        var args = FfmpegArgs.Build(Options(area, Nvenc, fps: 60), [], "out.mp4");
         Assert.Contains("ddagrab=output_idx=1:framerate=60:video_size=1280x720:offset_x=10:offset_y=20:draw_mouse=1", args);
         Assert.Equal("out.mp4", args[^1]);
     }
 
     [Fact]
-    public void Cursor_can_be_hidden_for_both_grabbers()
+    public void Cursor_can_be_hidden_for_every_grabber()
     {
+        Assert.Contains("capture_cursor=0", Line(FfmpegArgs.Build(Options(Gfx, Nvenc, cursor: false), [], "o.mp4")));
         Assert.Contains("draw_mouse=0", Line(FfmpegArgs.Build(Options(Small, Nvenc, cursor: false), [], "o.mp4")));
-        var gdi = Line(FfmpegArgs.Build(Options(new CaptureArea(null, new PixelRect(0, 0, 640, 360)), Mf, cursor: false), [], "o.mp4"));
+        var gdi = Line(FfmpegArgs.Build(Options(Gdi(new PixelRect(0, 0, 640, 360)), Mf, cursor: false), [], "o.mp4"));
         Assert.Contains("-draw_mouse 0", gdi);
     }
 
@@ -62,7 +81,7 @@ public class FfmpegArgsTests
     [Fact]
     public void Gdigrab_fallback_uses_absolute_coordinates_and_no_hwdownload()
     {
-        var line = Line(FfmpegArgs.Build(Options(new CaptureArea(null, new PixelRect(-1920, 0, 3840, 1080)), Mf), [], "o.mp4"));
+        var line = Line(FfmpegArgs.Build(Options(Gdi(new PixelRect(-1920, 0, 3840, 1080)), Mf), [], "o.mp4"));
         Assert.Contains("-f gdigrab -framerate 30 -offset_x -1920 -offset_y 0 -video_size 3840x1080", line);
         Assert.DoesNotContain("hwdownload", line);
     }

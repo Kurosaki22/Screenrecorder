@@ -61,6 +61,16 @@ public static class Encoders
         return candidates.Where((_, i) => ok[i]).ToList();
     }
 
+    /// <summary>
+    /// Whether this ffmpeg has gfxcapture (FFmpeg 8+). Deliberately no test grab: Windows Graphics Capture only
+    /// delivers frames when the screen changes, so a grab on an idle desktop would wait forever.
+    /// </summary>
+    public static async Task<bool> GraphicsCaptureWorksAsync(string ffmpeg)
+    {
+        var (exitCode, output) = await RunAsync(ffmpeg, "-hide_banner -h filter=gfxcapture");
+        return exitCode == 0 && output.Contains("Filter gfxcapture");
+    }
+
     static async Task<(int exitCode, string output)> RunAsync(string exe, string args)
     {
         var psi = new ProcessStartInfo(exe, args) { RedirectStandardOutput = true, RedirectStandardError = true, CreateNoWindow = true };

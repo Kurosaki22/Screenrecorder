@@ -1,6 +1,7 @@
 using System.Windows;
 using System.Windows.Interop;
 using System.Windows.Media;
+using System.Windows.Threading;
 
 namespace Screenrecorder;
 
@@ -11,12 +12,23 @@ public partial class MiniBar : Window
     static readonly Brush RecordingBrush = new SolidColorBrush(Color.FromRgb(0xE5, 0x39, 0x35));
     static readonly Brush PausedBrush = new SolidColorBrush(Color.FromRgb(0xFB, 0x8C, 0x00));
 
+    static readonly Brush[] HeartbeatBrushes =
+        [new SolidColorBrush(Color.FromArgb(0xF0, 0x1E, 0x1E, 0x1E)), new SolidColorBrush(Color.FromArgb(0xF0, 0x1E, 0x1E, 0x1F))];
+
+    readonly DispatcherTimer heartbeat = new() { Interval = TimeSpan.FromMilliseconds(30) };
+    int beat;
+
     public event Action? PauseClicked, StopClicked;
 
     public MiniBar()
     {
         InitializeComponent();
         SourceInitialized += (_, _) => Native.ExcludeFromCapture(new WindowInteropHelper(this).Handle);
+        // Windows Graphics Capture only delivers frames when something on the monitor changes, so on an idle screen a
+        // recording would neither start nor end on time. An invisible 1-step color flip of this bar (which is itself
+        // excluded from the capture) keeps frames coming; it is on the recorded monitor while recording.
+        heartbeat.Tick += (_, _) => Panel.Background = HeartbeatBrushes[++beat % 2];
+        IsVisibleChanged += (_, _) => heartbeat.IsEnabled = IsVisible;
     }
 
     public void Update(string status, bool paused, string pauseTooltip, string stopTooltip)

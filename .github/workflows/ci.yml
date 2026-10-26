@@ -39,6 +39,8 @@ jobs:
           foreach ($e in 'libopus', 'h264_nvenc', 'hevc_nvenc', 'av1_nvenc', 'h264_mf') {
             if ($encoders -notmatch "\b$e\b") { throw "ffmpeg build lacks $e" }
           }
+          # Windows Graphics Capture source, the default (smoothest) capture path
+          if ((& $ffmpeg -hide_banner -h filter=gfxcapture | Out-String) -notmatch 'Filter gfxcapture') { throw 'ffmpeg build lacks gfxcapture' }
 
           # Embedded into the exe by Screenrecorder.csproj (one-file download).
           $embed = 'src/Screenrecorder/ffmpeg'

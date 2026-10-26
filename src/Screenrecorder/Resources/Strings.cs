@@ -81,4 +81,7 @@ public static class Strings
     public static string Reset => Get();
     public static string Version => Get();
     public static string FfmpegInUse => Get();
+    public static string Fps => Get();
+    public static string FpsHint => Get();
+    public static string InvalidFps => Get();
 }

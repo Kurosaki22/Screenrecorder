@@ -18,7 +18,8 @@ frei definierbarem Aufnahmebereich und Systemsound + Mikrofon.
 - **Pause**: Aufnahme pausieren und fortsetzen; am Ende entsteht eine einzige Datei
 - **Hotkeys** (global, in den Einstellungen änderbar): **F2** Aufnahme starten/stoppen, **F3** Pause/Fortsetzen,
   **F4** Bereich auswählen; der aktuelle Hotkey steht unter dem jeweiligen Button
-- **Einstellungen**: Qualitätsregler (kleinere Datei ↔ bessere Qualität), Mauszeiger an/aus, Hotkeys,
+- **Einstellungen**: Qualitätsregler (kleinere Datei ↔ bessere Qualität), Bildrate (Vorschläge 24–240 fps oder
+  eigener Wert 1–240), Mauszeiger an/aus, Hotkeys,
   Ausgabepfad und Dateiname mit Platzhaltern (`<YYYY> <MM> <DD> <HH> <NN> <SS> <Z> <Nr>`), Sprache (Deutsch/Englisch),
   Farbschema (Windows/Hell/Dunkel), Info mit Lizenzen
 - Standard-Ausgabe: `%USERPROFILE%\Videos\Screenrecorder\Aufnahme_JJJJ_MM_TT_hh_mm_ss_zzz.mp4`
@@ -33,9 +34,11 @@ Eine eigene `ffmpeg.exe` neben der EXE hat Vorrang.
 
 - Ton wird als **Opus** gespeichert (lizenzfrei). VLC, Browser, YouTube und moderne Schnittprogramme spielen das ab;
   ältere Player oder Editoren evtl. nicht.
-- Aufnahmen innerhalb eines Monitors laufen komplett auf der GPU (Desktop Duplication). Ein Bereich über mehrere
-  Monitore oder „Ganzer Bildschirm“ bei mehreren Monitoren nutzt GDI-Capture (mehr CPU-Last).
-- Nur Monitore an der primären Grafikkarte werden per GPU erfasst.
+- Aufnahmen innerhalb eines Monitors laufen komplett auf der GPU über **Windows Graphics Capture**, auf jedem
+  Monitor und jeder Grafikkarte. Das Bild wird mit bis zu 240 Hz abgetastet und gleichmäßig auf die gewählte
+  Bildrate gebracht; gemessen ist die Bewegung damit deutlich gleichmäßiger als mit Desktop Duplication
+  (`tools/motion-test`). Ohne gfxcapture im ffmpeg fällt die App auf Desktop Duplication zurück.
+- Ein Bereich über mehrere Monitore oder „Ganzer Bildschirm“ bei mehreren Monitoren nutzt GDI-Capture (mehr CPU-Last).
 
 ## Entwicklung
 
@@ -49,6 +52,12 @@ dotnet run --project src/Screenrecorder
 ```
 
 Die A/V-Sync-Messung blendet kurz ein weißes Fenster oben links ein und spielt einen leisen Ton ab.
+
+Gleichmäßigkeit der Bewegung messen (braucht Python 3 und Edge; das Testfenster muss im Vordergrund bleiben):
+
+```powershell
+powershell -File tools/motion-test/run.ps1
+```
 
 ## Release
 

@@ -21,6 +21,21 @@ public static class Native
     [DllImport("user32.dll")] static extern IntPtr MonitorFromRect(ref RECT rect, uint flags);
     [DllImport("user32.dll")] static extern bool GetMonitorInfo(IntPtr monitor, ref MONITORINFO info);
 
+    delegate bool MonitorEnumProc(IntPtr monitor, IntPtr hdc, ref RECT rect, IntPtr data);
+    [DllImport("user32.dll")] static extern bool EnumDisplayMonitors(IntPtr hdc, IntPtr clip, MonitorEnumProc callback, IntPtr data);
+
+    /// <summary>All monitors on any GPU, in physical pixels.</summary>
+    public static IReadOnlyList<MonitorInfo> Monitors()
+    {
+        var list = new List<MonitorInfo>();
+        EnumDisplayMonitors(IntPtr.Zero, IntPtr.Zero, (IntPtr m, IntPtr _, ref RECT r, IntPtr _) =>
+        {
+            list.Add(new MonitorInfo(m, new PixelRect(r.Left, r.Top, r.Right - r.Left, r.Bottom - r.Top)));
+            return true;
+        }, IntPtr.Zero);
+        return list;
+    }
+
     /// <summary>Hides the window from every screen capture (Desktop Duplication, GDI, Graphics Capture). Windows 10 2004+.</summary>
     public static bool ExcludeFromCapture(IntPtr hwnd) => SetWindowDisplayAffinity(hwnd, WDA_EXCLUDEFROMCAPTURE);
 

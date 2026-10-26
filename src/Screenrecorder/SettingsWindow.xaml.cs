@@ -19,6 +19,7 @@ public partial class SettingsWindow : Window
         Result = copy;
         InitializeComponent();
         foreach (var (_, name) in Languages) LanguageBox.Items.Add(name);
+        foreach (var fps in Settings.FpsPresets) FpsBox.Items.Add(fps.ToString());
         VersionText.Text = string.Format(Strings.Version, typeof(App).Assembly.GetName().Version?.ToString(3));
         FfmpegText.Text = string.Format(Strings.FfmpegInUse, ffmpegPath ?? "–");
         LicenseBox.Text = Licenses();
@@ -28,6 +29,7 @@ public partial class SettingsWindow : Window
     void Load(Settings s)
     {
         QualitySlider.Value = s.Quality;
+        FpsBox.Text = s.Fps.ToString();
         ShowCursorBox.IsChecked = s.ShowCursor;
         HotkeyRecordBox.Text = s.HotkeyRecord;
         HotkeyPauseBox.Text = s.HotkeyPause;
@@ -107,6 +109,11 @@ public partial class SettingsWindow : Window
             Fail(1, string.Format(Strings.HotkeyDuplicate, duplicate.Key));
             return;
         }
+        if (!Settings.TryParseFps(FpsBox.Text, out var fps))
+        {
+            Fail(0, string.Format(Strings.InvalidFps, FpsBox.Text));
+            return;
+        }
         if (!int.TryParse(StartNumberBox.Text, out var number) || number < 0)
         {
             Fail(2, Strings.InvalidStartNumber);
@@ -123,6 +130,7 @@ public partial class SettingsWindow : Window
         }
 
         Result.Quality = (int)Math.Round(QualitySlider.Value);
+        Result.Fps = fps;
         Result.ShowCursor = ShowCursorBox.IsChecked == true;
         (Result.HotkeyRecord, Result.HotkeyPause, Result.HotkeySelectArea) = (hotkeys[0], hotkeys[1], hotkeys[2]);
         Result.OutputFolder = OutputFolderBox.Text;

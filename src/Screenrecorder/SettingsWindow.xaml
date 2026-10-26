@@ -51,6 +51,9 @@
                     <TextBlock Text="{x:Static res:Strings.QualitySmaller}" Style="{StaticResource Hint}" />
                 </DockPanel>
                 <TextBlock Text="{x:Static res:Strings.QualityHint}" Style="{StaticResource Hint}" Margin="0,12,0,0" />
+                <TextBlock Text="{x:Static res:Strings.Fps}" Style="{StaticResource Header}" Margin="0,28,0,8" />
+                <ComboBox x:Name="FpsBox" IsEditable="True" Width="140" HorizontalAlignment="Left" />
+                <TextBlock Text="{x:Static res:Strings.FpsHint}" Style="{StaticResource Hint}" Margin="0,6,0,0" />
                 <CheckBox x:Name="ShowCursorBox" Content="{x:Static res:Strings.ShowCursor}" Margin="0,28,0,0" />
             </StackPanel>
 
