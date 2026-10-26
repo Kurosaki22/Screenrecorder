@@ -8,7 +8,8 @@ public static class FfmpegArgs
     public static List<string> Build(CaptureArea area, VideoEncoder encoder, int fps, IReadOnlyList<AudioInput> audio, string outputPath)
     {
         var r = area.Rect;
-        var a = new List<string> { "-hide_banner", "-loglevel", "error", "-nostats", "-y" };
+        // -progress: key=value lines on stdout every 0.5 s (total_size drives the size display).
+        var a = new List<string> { "-hide_banner", "-loglevel", "error", "-nostats", "-progress", "pipe:1", "-stats_period", "0.5", "-y" };
 
         if (area.OutputIndex is int idx)
             a.AddRange(["-f", "lavfi", "-i",

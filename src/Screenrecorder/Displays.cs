@@ -8,6 +8,13 @@ public readonly record struct PixelRect(int X, int Y, int Width, int Height)
     public int Right => X + Width;
     public int Bottom => Y + Height;
     public bool Contains(PixelRect r) => r.X >= X && r.Y >= Y && r.Right <= Right && r.Bottom <= Bottom;
+    public bool Contains(int x, int y) => x >= X && y >= Y && x < Right && y < Bottom;
+
+    public PixelRect? Intersect(PixelRect o)
+    {
+        int l = Math.Max(X, o.X), t = Math.Max(Y, o.Y), r = Math.Min(Right, o.Right), b = Math.Min(Bottom, o.Bottom);
+        return r > l && b > t ? new PixelRect(l, t, r - l, b - t) : null;
+    }
     public override string ToString() => $"{Width}x{Height}";
 }
 

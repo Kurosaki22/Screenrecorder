@@ -61,6 +61,41 @@ public class AudioPipeWriterTests
     }
 }
 
+public class RecorderTests
+{
+    [Theory]
+    [InlineData("total_size=123456", 123456L)]
+    [InlineData("total_size=0", 0L)]
+    [InlineData("total_size=N/A", null)]
+    [InlineData("out_time_us=5000000", null)]
+    [InlineData("progress=continue", null)]
+    public void Parses_total_size_from_progress_lines(string line, long? expected) =>
+        Assert.Equal(expected, Recorder.ParseTotalSize(line));
+}
+
+public class PixelRectTests
+{
+    [Fact]
+    public void Intersect_returns_the_overlap()
+    {
+        Assert.Equal(new PixelRect(50, 50, 50, 50), new PixelRect(0, 0, 100, 100).Intersect(new PixelRect(50, 50, 100, 100)));
+    }
+
+    [Fact]
+    public void Intersect_clips_a_window_hanging_off_the_desktop()
+    {
+        var desktop = new PixelRect(-1920, 0, 4480, 1440);
+        Assert.Equal(new PixelRect(-1920, 0, 760, 600), desktop.Intersect(new PixelRect(-1960, -40, 800, 640)));
+    }
+
+    [Fact]
+    public void Intersect_of_disjoint_or_touching_rects_is_null()
+    {
+        Assert.Null(new PixelRect(0, 0, 10, 10).Intersect(new PixelRect(20, 20, 10, 10)));
+        Assert.Null(new PixelRect(0, 0, 10, 10).Intersect(new PixelRect(10, 0, 10, 10)));
+    }
+}
+
 public class SettingsTests
 {
     [Theory]

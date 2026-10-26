@@ -20,7 +20,8 @@
         </Style>
     </Window.Resources>
 
-    <StackPanel Orientation="Horizontal" Margin="8">
+    <StackPanel Margin="8">
+    <StackPanel Orientation="Horizontal">
         <Button x:Name="RecordButton" Style="{StaticResource ToolButton}" Click="Record_Click" IsEnabled="False"
                 ToolTip="{x:Static res:Strings.HotkeyHint}">
             <StackPanel>
@@ -58,5 +59,9 @@
                 <TextBlock Text="{x:Static res:Strings.Menu}" HorizontalAlignment="Center" />
             </StackPanel>
         </Button>
+    </StackPanel>
+    <!-- Shown while recording: elapsed time and current file size -->
+    <TextBlock x:Name="StatusText" Visibility="Collapsed" Margin="4,6,4,0" FontSize="15" FontWeight="SemiBold"
+               HorizontalAlignment="Center" FontFamily="Segoe UI Variable, Segoe UI" />
     </StackPanel>
 </Window>

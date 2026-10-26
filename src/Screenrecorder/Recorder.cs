@@ -13,8 +13,12 @@ public sealed class Recorder
     readonly CancellationTokenSource cts = new();
     readonly Queue<string> errorTail = new();
     bool stopping;
+    long bytesWritten;
 
     public string OutputPath { get; }
+
+    /// <summary>Output size so far as reported by ffmpeg (FileInfo.Length lags while ffmpeg holds the file open).</summary>
+    public long BytesWritten => Interlocked.Read(ref bytesWritten);
 
     /// <summary>Raised (on a worker thread) when ffmpeg exits without being asked to; carries its last error lines.</summary>
     public event Action<string>? Failed;
@@ -47,6 +51,7 @@ public sealed class Recorder
         var psi = new ProcessStartInfo(ffmpegPath)
         {
             RedirectStandardInput = true,
+            RedirectStandardOutput = true,
             RedirectStandardError = true,
             CreateNoWindow = true,
         };
@@ -64,6 +69,10 @@ public sealed class Recorder
                 rec.errorTail.Enqueue(e.Data);
                 if (rec.errorTail.Count > 20) rec.errorTail.Dequeue();
             }
+        };
+        p.OutputDataReceived += (_, e) =>
+        {
+            if (e.Data is not null && ParseTotalSize(e.Data) is long size) Interlocked.Exchange(ref rec.bytesWritten, size);
         };
         p.Exited += (_, _) =>
         {
@@ -84,6 +93,7 @@ public sealed class Recorder
             throw;
         }
         p.BeginErrorReadLine();
+        p.BeginOutputReadLine();
         foreach (var w in writers)
             _ = w.StartWhenConnectedAsync(rec.cts.Token).ContinueWith(_ => { }, TaskContinuationOptions.OnlyOnFaulted);
         return rec;
@@ -110,6 +120,10 @@ public sealed class Recorder
         writers.ForEach(w => w.Dispose());
         ffmpeg.Dispose();
     }
+
+    /// <summary>Reads "total_size=12345" from ffmpeg's -progress output; other lines and "N/A" give null.</summary>
+    public static long? ParseTotalSize(string line) =>
+        line.StartsWith("total_size=", StringComparison.Ordinal) && long.TryParse(line.AsSpan(11), out var size) ? size : null;
 
     string ErrorText()
     {

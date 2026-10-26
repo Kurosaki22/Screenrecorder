@@ -36,6 +36,7 @@ public class RecorderIntegrationTests(ITestOutputHelper log)
             string? failure = null;
             rec.Failed += m => failure = m;
             await Task.Delay(TimeSpan.FromSeconds(3));
+            Assert.True(rec.BytesWritten > 0, "ffmpeg reported no output size while recording");
             await rec.StopAsync();
             Assert.Null(failure);
 
@@ -130,40 +131,79 @@ public class RecorderIntegrationTests(ITestOutputHelper log)
     }
 
     /// <summary>Black topmost window over the top-left of the primary screen that can turn white on demand.</summary>
-    sealed class Flasher : IDisposable
+    sealed class Flasher() : TestForm(() => new Form
     {
-        readonly Thread thread;
-        Form? form;
-
-        public Flasher()
+        FormBorderStyle = FormBorderStyle.None, TopMost = true, ShowInTaskbar = false,
+        StartPosition = FormStartPosition.Manual, Bounds = new Rectangle(0, 0, 800, 500), BackColor = Color.Black,
+    })
+    {
+        public void White() => Invoke(f =>
         {
-            using var shown = new ManualResetEventSlim();
-            thread = new Thread(() =>
-            {
-                Application.SetHighDpiMode(HighDpiMode.PerMonitorV2);
-                form = new Form
-                {
-                    FormBorderStyle = FormBorderStyle.None, TopMost = true, ShowInTaskbar = false,
-                    StartPosition = FormStartPosition.Manual, Bounds = new Rectangle(0, 0, 800, 500), BackColor = Color.Black,
-                };
-                form.Shown += (_, _) => shown.Set();
-                Application.Run(form);
-            });
-            thread.SetApartmentState(ApartmentState.STA);
-            thread.Start();
-            shown.Wait();
-        }
-
-        public void White() => form!.Invoke(() =>
-        {
-            form.BackColor = Color.White;
-            form.Refresh();
+            f.BackColor = Color.White;
+            f.Refresh();
         });
+    }
+}
 
-        public void Dispose()
+/// <summary>A WinForms window on its own STA thread, shown until disposed (per-monitor DPI aware = physical pixels).</summary>
+class TestForm : IDisposable
+{
+    readonly Thread thread;
+    Form? form;
+
+    public TestForm(Func<Form> create)
+    {
+        using var shown = new ManualResetEventSlim();
+        thread = new Thread(() =>
         {
-            form!.Invoke(form.Close);
-            thread.Join();
-        }
+            Application.SetHighDpiMode(HighDpiMode.PerMonitorV2);
+            form = create();
+            form.Shown += (_, _) => shown.Set();
+            Application.Run(form);
+        });
+        thread.SetApartmentState(ApartmentState.STA);
+        thread.Start();
+        shown.Wait();
+    }
+
+    public T Invoke<T>(Func<Form, T> action) => form!.Invoke(() => action(form));
+    public void Invoke(Action<Form> action) => form!.Invoke(() => action(form));
+
+    public void Dispose()
+    {
+        form!.Invoke(form.Close);
+        thread.Join();
+    }
+}
+
+[Trait("Category", "Integration")]
+public class WindowPickerTests
+{
+    [Fact]
+    public void Suggests_inner_window_under_cursor_and_whole_window_on_title_bar()
+    {
+        using var window = new TestForm(() =>
+        {
+            var f = new Form { TopMost = true, StartPosition = FormStartPosition.Manual, Bounds = new Rectangle(200, 200, 700, 500) };
+            f.Controls.Add(new Panel { Location = new Point(40, 30), Size = new Size(300, 200), BackColor = Color.SteelBlue });
+            return f;
+        });
+        var (panel, outer, titleBar) = window.Invoke(f =>
+        {
+            var p = f.Controls[0];
+            var title = f.PointToScreen(Point.Empty); // client origin; the title bar sits just above it
+            return (p.RectangleToScreen(p.ClientRectangle), f.Bounds, new Point(title.X + 100, title.Y - 10));
+        });
+        Thread.Sleep(200); // let the window settle on screen
+
+        // The test window belongs to this process, so nothing is ignored here.
+        var inner = WindowPicker.RectAt(panel.X + panel.Width / 2, panel.Y + panel.Height / 2, ignoredProcessId: 0);
+        Assert.Equal(new PixelRect(panel.X, panel.Y, panel.Width, panel.Height), inner);
+
+        var whole = WindowPicker.RectAt(titleBar.X, titleBar.Y, ignoredProcessId: 0);
+        Assert.NotNull(whole);
+        var w = whole.Value;
+        // Visible frame only: inside GetWindowRect's bounds, which include the invisible shadow border.
+        Assert.True(w.X > outer.X && w.Right < outer.Right && w.Bottom < outer.Bottom, $"{w.X},{w.Y} {w} vs {outer}");
     }
 }

@@ -20,6 +20,13 @@ public class FfmpegArgsTests
     }
 
     [Fact]
+    public void Progress_is_reported_on_stdout()
+    {
+        var line = Line(FfmpegArgs.Build(new CaptureArea(0, new PixelRect(0, 0, 640, 360)), Nvenc, 30, [], "o.mp4"));
+        Assert.Contains("-progress pipe:1 -stats_period 0.5", line);
+    }
+
+    [Fact]
     public void Nvenc_takes_gpu_frames_directly()
     {
         var args = FfmpegArgs.Build(new CaptureArea(0, new PixelRect(0, 0, 640, 360)), Nvenc, 30, [], "o.mp4");

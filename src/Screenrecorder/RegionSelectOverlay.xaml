@@ -5,5 +5,8 @@
         ShowInTaskbar="False" ResizeMode="NoResize" Cursor="Cross">
     <Canvas x:Name="Root" Background="Transparent">
         <Rectangle x:Name="Band" Stroke="#FFE53935" StrokeThickness="2" Fill="#22FFFFFF" Visibility="Collapsed" />
+        <Border x:Name="SizeTag" Background="#E61E1E1E" CornerRadius="3" Padding="6,2" Visibility="Collapsed">
+            <TextBlock x:Name="SizeText" Foreground="White" FontWeight="SemiBold" />
+        </Border>
     </Canvas>
 </Window>

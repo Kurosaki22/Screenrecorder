@@ -35,4 +35,5 @@
   <data name="Cancel" xml:space="preserve"><value>Cancel</value></data>
   <data name="HotkeyHint" xml:space="preserve"><value>F2: start / stop recording</value></data>
   <data name="Exit" xml:space="preserve"><value>Exit</value></data>
+  <data name="Recording" xml:space="preserve"><value>REC</value></data>
 </root>

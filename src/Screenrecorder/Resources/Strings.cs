@@ -41,4 +41,5 @@ public static class Strings
     public static string Cancel => Get();
     public static string HotkeyHint => Get();
     public static string Exit => Get();
+    public static string Recording => Get();
 }

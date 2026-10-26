@@ -4,6 +4,7 @@ using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
+using System.Windows.Documents;
 using System.Windows.Interop;
 using System.Windows.Threading;
 using Screenrecorder.Resources;
@@ -166,9 +167,11 @@ public partial class MainWindow : Window
         RecordText.Text = on ? Strings.Stop : Strings.Record;
         AreaButton.IsEnabled = CodecsButton.IsEnabled = SoundButton.IsEnabled = MenuButton.IsEnabled = !on;
         frame.Recording = on;
+        StatusText.Visibility = on ? Visibility.Visible : Visibility.Collapsed;
         if (on)
         {
             recordingClock.Restart();
+            UpdateStatus();
             statusTimer.Start();
         }
         else
@@ -181,9 +184,12 @@ public partial class MainWindow : Window
     void UpdateStatus()
     {
         if (recorder is null) return;
-        var file = new FileInfo(recorder.OutputPath);
-        var mb = file.Exists ? file.Length / (1024.0 * 1024.0) : 0;
-        Title = $"● {recordingClock.Elapsed:hh\\:mm\\:ss}  {mb:0.0} MB";
+        var mb = recorder.BytesWritten / (1024.0 * 1024.0);
+        var text = $"{Strings.Recording} {recordingClock.Elapsed:hh\\:mm\\:ss} · {mb:0.0} MB";
+        StatusText.Inlines.Clear();
+        StatusText.Inlines.Add(new Run("● ") { Foreground = RecordGlyph.Foreground });
+        StatusText.Inlines.Add(new Run(text));
+        Title = "● " + text;
     }
 
     protected override async void OnClosing(CancelEventArgs e)
@@ -214,7 +220,8 @@ public partial class MainWindow : Window
 
     static MenuItem Item(string header, Action onClick, bool isChecked = false, bool enabled = true)
     {
-        var item = new MenuItem { Header = header, IsChecked = isChecked, IsEnabled = enabled };
+        // The Fluent theme only draws the check mark on checkable items; menus are rebuilt on every open anyway.
+        var item = new MenuItem { Header = header, IsCheckable = isChecked, IsChecked = isChecked, IsEnabled = enabled };
         item.Click += (_, _) => onClick();
         return item;
     }
