@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <data name="Menu" xml:space="preserve"><value>Menü</value></data>
+  <data name="Record" xml:space="preserve"><value>Aufnahme</value></data>
+  <data name="Stop" xml:space="preserve"><value>Stopp</value></data>
+  <data name="Area" xml:space="preserve"><value>Bereich</value></data>
+  <data name="Open" xml:space="preserve"><value>Öffnen</value></data>
+  <data name="Codecs" xml:space="preserve"><value>Codecs</value></data>
+  <data name="Sound" xml:space="preserve"><value>Ton</value></data>
+  <data name="AllScreens" xml:space="preserve"><value>Ganzer Bildschirm (alle Monitore)</value></data>
+  <data name="PrimaryScreen" xml:space="preserve"><value>Hauptbildschirm</value></data>
+  <data name="SecondaryScreen" xml:space="preserve"><value>Zweiter Bildschirm</value></data>
+  <data name="SelectArea" xml:space="preserve"><value>Bereich auswählen…</value></data>
+  <data name="ResizeArea" xml:space="preserve"><value>Größe anpassen…</value></data>
+  <data name="AddArea" xml:space="preserve"><value>Aktuelle Größe zur Liste hinzufügen</value></data>
+  <data name="EditAreas" xml:space="preserve"><value>Aufnahmebereichsliste bearbeiten…</value></data>
+  <data name="EditAreasPrompt" xml:space="preserve"><value>Eine Größe pro Zeile, z. B. 1600x900</value></data>
+  <data name="SizePrompt" xml:space="preserve"><value>Breite x Höhe in Pixeln, z. B. 1280x720</value></data>
+  <data name="InvalidSize" xml:space="preserve"><value>Ungültige Größe: {0}</value></data>
+  <data name="SystemSound" xml:space="preserve"><value>Systemsound aufnehmen</value></data>
+  <data name="Microphone" xml:space="preserve"><value>Mikrofon aufnehmen</value></data>
+  <data name="DetectingCodecs" xml:space="preserve"><value>Codecs werden erkannt…</value></data>
+  <data name="NoCodecs" xml:space="preserve"><value>Kein funktionierender Video-Encoder gefunden.</value></data>
+  <data name="FfmpegMissing" xml:space="preserve"><value>ffmpeg.exe wurde nicht gefunden. Lege sie neben Screenrecorder.exe oder in den PATH.</value></data>
+  <data name="RecordingFailed" xml:space="preserve"><value>Aufnahme fehlgeschlagen:</value></data>
+  <data name="NoSecondScreen" xml:space="preserve"><value>Kein zweiter Bildschirm gefunden.</value></data>
+  <data name="Language" xml:space="preserve"><value>Sprache</value></data>
+  <data name="LanguageSystem" xml:space="preserve"><value>Windows-Einstellung</value></data>
+  <data name="RestartHint" xml:space="preserve"><value>Die Sprache wird nach einem Neustart der App übernommen.</value></data>
+  <data name="Ok" xml:space="preserve"><value>OK</value></data>
+  <data name="Cancel" xml:space="preserve"><value>Abbrechen</value></data>
+  <data name="HotkeyHint" xml:space="preserve"><value>F2: Aufnahme starten / stoppen</value></data>
+  <data name="Exit" xml:space="preserve"><value>Beenden</value></data>
+</root>
