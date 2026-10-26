@@ -4,7 +4,6 @@ using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
-using System.Windows.Documents;
 using System.Windows.Interop;
 using System.Windows.Threading;
 using Screenrecorder.Resources;
@@ -25,7 +24,7 @@ public partial class MainWindow : Window
     string? ffmpeg;
     List<VideoEncoder>? encoders;
     RecordingSession? session;
-    bool busy;
+    bool busy, minimizedForRecording;
 
     public MainWindow(Settings settings)
     {
@@ -39,11 +38,11 @@ public partial class MainWindow : Window
 
     async void OnLoaded(object? sender, RoutedEventArgs e)
     {
-        frame.Owner = this;
+        // No Owner for frame and mini bar: WPF hides owned windows while the owner is minimized, and the main window
+        // minimizes itself when it overlaps the recorded area. App.xaml's ShutdownMode closes them with the main window.
         frame.Show();
         frame.Region = OnScreen(settings.Region);
         ApplyAreaMode();
-        miniBar.Owner = this;
         miniBar.PauseClicked += TogglePause;
         miniBar.StopClicked += ToggleRecording;
 
@@ -216,6 +215,12 @@ public partial class MainWindow : Window
         SetRecordingUi(true);
         // Dock the mini bar to what is visibly framed: the frame window incl. its size label, or the recorded screen.
         miniBar.ShowAt(settings.Area == AreaMode.Region ? Native.GetWindowRect(new WindowInteropHelper(frame).Handle) : rect);
+        // Get out of the picture, but only if we are in it (the window rect includes the shadow, so this errs on the safe side).
+        if (rect.Intersect(Native.GetWindowRect(Hwnd)) is not null)
+        {
+            minimizedForRecording = true;
+            WindowState = WindowState.Minimized;
+        }
     }
 
     async Task StopRecording()
@@ -233,10 +238,10 @@ public partial class MainWindow : Window
     {
         RecordGlyph.Text = on ? "" : "";
         RecordText.Text = on ? Strings.Stop : Strings.Record;
-        PauseButton.Visibility = on ? Visibility.Visible : Visibility.Collapsed;
+        // Pause stays visible (only disabled) so the window never changes size; status lives in the title.
+        PauseButton.IsEnabled = on;
         AreaButton.IsEnabled = CodecsButton.IsEnabled = SoundButton.IsEnabled = SettingsButton.IsEnabled = !on;
         frame.Recording = on;
-        StatusText.Visibility = on ? Visibility.Visible : Visibility.Collapsed;
         if (on)
         {
             UpdatePauseUi();
@@ -247,6 +252,14 @@ public partial class MainWindow : Window
             statusTimer.Stop();
             miniBar.Hide();
             Title = "Screenrecorder";
+            PauseGlyph.Text = "";
+            PauseText.Text = Strings.Pause;
+            if (minimizedForRecording)
+            {
+                minimizedForRecording = false;
+                WindowState = WindowState.Normal;
+                Activate();
+            }
         }
     }
 
@@ -265,9 +278,6 @@ public partial class MainWindow : Window
         var mb = session.BytesWritten / (1024.0 * 1024.0);
         var (dot, label) = session.IsPaused ? ("⏸ ", Strings.Paused) : ("● ", Strings.Recording);
         var text = $"{label} {session.Elapsed:hh\\:mm\\:ss} · {mb:0.0} MB";
-        StatusText.Inlines.Clear();
-        StatusText.Inlines.Add(new Run(dot) { Foreground = RecordGlyph.Foreground });
-        StatusText.Inlines.Add(new Run(text));
         Title = dot + text;
         miniBar.Update(text, session.IsPaused,
             WithHotkey(session.IsPaused ? Strings.Resume : Strings.Pause, PauseHotkey.Text), WithHotkey(Strings.Stop, RecordHotkey.Text));

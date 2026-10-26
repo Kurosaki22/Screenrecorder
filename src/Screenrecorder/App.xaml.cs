@@ -12,7 +12,9 @@ public partial class App : Application
         if (settings.Language != "")
             CultureInfo.DefaultThreadCurrentUICulture = CultureInfo.CurrentUICulture = new CultureInfo(settings.Language);
         ApplyTheme(settings.Theme);
-        new MainWindow(settings).Show();
+        // Explicit: the frame and mini bar are created first and would otherwise become MainWindow (ShutdownMode).
+        MainWindow = new MainWindow(settings);
+        MainWindow.Show();
     }
 
     public static void ApplyTheme(ThemeChoice theme) => Current.ThemeMode = theme switch
