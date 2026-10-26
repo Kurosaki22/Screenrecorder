@@ -2,27 +2,42 @@ using System.Diagnostics;
 
 namespace Screenrecorder;
 
-/// <summary>A video encoder ffmpeg may offer. TakesD3D11: accepts ddagrab's GPU frames without a download.</summary>
-public sealed record VideoEncoder(string Name, string Label, string Vendor, bool TakesD3D11, string[] QualityArgs);
+/// <summary>
+/// A video encoder ffmpeg may offer. TakesD3D11: accepts ddagrab's GPU frames without a download.
+/// Quality 1..100 maps linearly from Worst to Best on QualityFlag (a CQ/CRF level, or a bitrate when Unit is "M").
+/// </summary>
+public sealed record VideoEncoder(string Name, string Label, string Vendor, bool TakesD3D11,
+    string[] BaseArgs, string QualityFlag, int Worst, int Best, string Unit = "")
+{
+    public string[] QualityArgs(int quality)
+    {
+        var t = (Math.Clamp(quality, 1, 100) - 1) / 99.0;
+        var value = (int)Math.Round(Worst + (Best - Worst) * t);
+        return [.. BaseArgs, QualityFlag, $"{value}{Unit}"];
+    }
+}
 
 public static class Encoders
 {
+    static readonly string[] Nvenc = ["-preset", "p5", "-rc", "vbr", "-b:v", "0"];
+
     // Only LGPL/BSD-compatible encoders (no libx264/libx265) so the app stays sellable.
+    // Ranges are chosen so the default quality (80) matches the previous fixed settings.
     public static readonly IReadOnlyList<VideoEncoder> Known =
     [
-        new("h264_nvenc", "H.264 (NVENC)", "NVIDIA", true, ["-preset", "p5", "-rc", "vbr", "-cq", "23", "-b:v", "0"]),
-        new("hevc_nvenc", "H.265 / HEVC (NVENC)", "NVIDIA", true, ["-preset", "p5", "-rc", "vbr", "-cq", "25", "-b:v", "0"]),
-        new("av1_nvenc", "AV1 (NVENC)", "NVIDIA", true, ["-preset", "p5", "-rc", "vbr", "-cq", "30", "-b:v", "0"]),
+        new("h264_nvenc", "H.264 (NVENC)", "NVIDIA", true, Nvenc, "-cq", 42, 18),
+        new("hevc_nvenc", "H.265 / HEVC (NVENC)", "NVIDIA", true, Nvenc, "-cq", 44, 20),
+        new("av1_nvenc", "AV1 (NVENC)", "NVIDIA", true, Nvenc, "-cq", 50, 24),
         // shortcut: QSV/AMF go through hwdownload (untested on Intel/AMD hardware); zero-copy could be added there.
-        new("h264_qsv", "H.264 (Quick Sync)", "Intel", false, ["-global_quality", "23"]),
-        new("hevc_qsv", "H.265 / HEVC (Quick Sync)", "Intel", false, ["-global_quality", "25"]),
-        new("av1_qsv", "AV1 (Quick Sync)", "Intel", false, ["-global_quality", "30"]),
-        new("h264_amf", "H.264 (AMF)", "AMD", false, ["-b:v", "16M"]),
-        new("hevc_amf", "H.265 / HEVC (AMF)", "AMD", false, ["-b:v", "12M"]),
-        new("av1_amf", "AV1 (AMF)", "AMD", false, ["-b:v", "10M"]),
-        new("h264_mf", "H.264 (Windows Media Foundation)", "Windows", false, ["-b:v", "16M"]),
-        new("hevc_mf", "H.265 / HEVC (Windows Media Foundation)", "Windows", false, ["-b:v", "12M"]),
-        new("libsvtav1", "AV1 (SVT-AV1, CPU)", "Software", false, ["-preset", "10", "-crf", "32"]),
+        new("h264_qsv", "H.264 (Quick Sync)", "Intel", false, [], "-global_quality", 45, 18),
+        new("hevc_qsv", "H.265 / HEVC (Quick Sync)", "Intel", false, [], "-global_quality", 45, 18),
+        new("av1_qsv", "AV1 (Quick Sync)", "Intel", false, [], "-global_quality", 50, 22),
+        new("h264_amf", "H.264 (AMF)", "AMD", false, [], "-b:v", 2, 24, "M"),
+        new("hevc_amf", "H.265 / HEVC (AMF)", "AMD", false, [], "-b:v", 1, 16, "M"),
+        new("av1_amf", "AV1 (AMF)", "AMD", false, [], "-b:v", 1, 16, "M"),
+        new("h264_mf", "H.264 (Windows Media Foundation)", "Windows", false, [], "-b:v", 2, 24, "M"),
+        new("hevc_mf", "H.265 / HEVC (Windows Media Foundation)", "Windows", false, [], "-b:v", 1, 16, "M"),
+        new("libsvtav1", "AV1 (SVT-AV1, CPU)", "Software", false, ["-preset", "10"], "-crf", 55, 22),
     ];
 
     /// <summary>Known encoders whose name appears in `ffmpeg -encoders` output, in Known order.</summary>

@@ -34,6 +34,45 @@
   <data name="Ok" xml:space="preserve"><value>OK</value></data>
   <data name="Cancel" xml:space="preserve"><value>Abbrechen</value></data>
   <data name="HotkeyHint" xml:space="preserve"><value>F2: Aufnahme starten / stoppen</value></data>
-  <data name="Exit" xml:space="preserve"><value>Beenden</value></data>
   <data name="Recording" xml:space="preserve"><value>REC</value></data>
+  <data name="Settings" xml:space="preserve"><value>Einstellungen</value></data>
+  <data name="Pause" xml:space="preserve"><value>Pause</value></data>
+  <data name="Resume" xml:space="preserve"><value>Fortsetzen</value></data>
+  <data name="Paused" xml:space="preserve"><value>PAUSE</value></data>
+  <data name="HotkeyTaken" xml:space="preserve"><value>Diese Tastenkürzel sind bereits von einem anderen Programm belegt: {0}</value></data>
+  <data name="CategoryRecording" xml:space="preserve"><value>Aufnahme</value></data>
+  <data name="CategoryHotkeys" xml:space="preserve"><value>Hotkeys</value></data>
+  <data name="CategoryOutput" xml:space="preserve"><value>Ausgabe</value></data>
+  <data name="CategoryAppearance" xml:space="preserve"><value>Darstellung</value></data>
+  <data name="CategoryInfo" xml:space="preserve"><value>Info</value></data>
+  <data name="Quality" xml:space="preserve"><value>Qualität</value></data>
+  <data name="QualitySmaller" xml:space="preserve"><value>Kleinere Datei</value></data>
+  <data name="QualityBetter" xml:space="preserve"><value>Bessere Qualität</value></data>
+  <data name="QualityHint" xml:space="preserve"><value>Gilt für alle Codecs. Niedrigere Werte machen die Datei deutlich kleiner, das Bild wird dabei unschärfer.</value></data>
+  <data name="ShowCursor" xml:space="preserve"><value>Mauszeiger aufnehmen</value></data>
+  <data name="HotkeyRecordLabel" xml:space="preserve"><value>Aufnahme starten / stoppen</value></data>
+  <data name="HotkeyPauseLabel" xml:space="preserve"><value>Aufnahme pausieren / fortsetzen</value></data>
+  <data name="HotkeySelectAreaLabel" xml:space="preserve"><value>Bereich auswählen</value></data>
+  <data name="HotkeyHelp" xml:space="preserve"><value>In ein Feld klicken und die gewünschte Taste drücken (optional mit Strg, Alt, Umschalt). Entf oder Rücktaste entfernt das Kürzel.</value></data>
+  <data name="HotkeyDuplicate" xml:space="preserve"><value>Das Tastenkürzel {0} ist mehrfach vergeben.</value></data>
+  <data name="OutputFolder" xml:space="preserve"><value>Ausgabepfad:</value></data>
+  <data name="FileName" xml:space="preserve"><value>Dateiname:</value></data>
+  <data name="StartNumber" xml:space="preserve"><value>Startnummer für &lt;Nr&gt;:</value></data>
+  <data name="FileNamePreview" xml:space="preserve"><value>Dateiname: {0}</value></data>
+  <data name="InvalidFolder" xml:space="preserve"><value>Der Ausgabepfad kann nicht verwendet werden:</value></data>
+  <data name="InvalidStartNumber" xml:space="preserve"><value>Die Startnummer muss eine ganze Zahl ab 0 sein.</value></data>
+  <data name="TokenYear" xml:space="preserve"><value>Jahr</value></data>
+  <data name="TokenMonth" xml:space="preserve"><value>Monat</value></data>
+  <data name="TokenDay" xml:space="preserve"><value>Tag</value></data>
+  <data name="TokenHour" xml:space="preserve"><value>Stunde</value></data>
+  <data name="TokenMinute" xml:space="preserve"><value>Minute</value></data>
+  <data name="TokenSecond" xml:space="preserve"><value>Sekunde</value></data>
+  <data name="TokenMillisecond" xml:space="preserve"><value>Millisekunden</value></data>
+  <data name="TokenNumber" xml:space="preserve"><value>Fortlaufende Nummer</value></data>
+  <data name="Theme" xml:space="preserve"><value>Farbschema</value></data>
+  <data name="ThemeLight" xml:space="preserve"><value>Hell</value></data>
+  <data name="ThemeDark" xml:space="preserve"><value>Dunkel</value></data>
+  <data name="Reset" xml:space="preserve"><value>Zurücksetzen</value></data>
+  <data name="Version" xml:space="preserve"><value>Version {0}</value></data>
+  <data name="FfmpegInUse" xml:space="preserve"><value>Verwendetes FFmpeg: {0}</value></data>
 </root>

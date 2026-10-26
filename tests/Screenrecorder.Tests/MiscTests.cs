@@ -73,6 +73,112 @@ public class RecorderTests
         Assert.Equal(expected, Recorder.ParseTotalSize(line));
 }
 
+public class FfmpegExtractTests
+{
+    [Fact]
+    public void Embedded_ffmpeg_is_written_once_and_old_versions_are_removed()
+    {
+        var root = Path.Combine(Path.GetTempPath(), $"sr-ffmpeg-{Guid.NewGuid():N}");
+        try
+        {
+            Directory.CreateDirectory(Path.Combine(root, "0.1.0"));
+            var exe = Recorder.ExtractIfNeeded(new MemoryStream([1, 2, 3]), root, "0.2.0");
+            Assert.Equal(Path.Combine(root, "0.2.0", "ffmpeg.exe"), exe);
+            Assert.Equal([1, 2, 3], File.ReadAllBytes(exe));
+            Assert.False(Directory.Exists(Path.Combine(root, "0.1.0")));
+
+            var written = File.GetLastWriteTimeUtc(exe);
+            Thread.Sleep(50);
+            Recorder.ExtractIfNeeded(new MemoryStream([1, 2, 3]), root, "0.2.0");
+            Assert.Equal(written, File.GetLastWriteTimeUtc(exe)); // same size: not rewritten
+
+            Recorder.ExtractIfNeeded(new MemoryStream([1, 2, 3, 4]), root, "0.2.0");
+            Assert.Equal([1, 2, 3, 4], File.ReadAllBytes(exe)); // truncated/stale copy gets replaced
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+}
+
+public class FileNamerTests
+{
+    static readonly DateTime Time = new(2026, 10, 26, 21, 30, 22, 663);
+
+    [Fact]
+    public void Replaces_all_placeholders()
+    {
+        Assert.Equal("Aufnahme_2026_10_26_21_30_22_663", FileNamer.Format(FileNamer.DefaultPattern, Time, 1));
+        Assert.Equal("Clip 7 26.10", FileNamer.Format("Clip <Nr> <DD>.<MM>.", Time, 7)); // trailing dot is not allowed on Windows
+    }
+
+    [Fact]
+    public void Invalid_characters_become_underscores_and_empty_falls_back()
+    {
+        Assert.Equal("a_b_c", FileNamer.Format("a:b/c", Time, 1));
+        Assert.Equal("Aufnahme", FileNamer.Format("  ", Time, 1));
+    }
+
+    [Fact]
+    public void Unique_appends_a_counter_when_the_file_exists()
+    {
+        var dir = Directory.CreateTempSubdirectory().FullName;
+        try
+        {
+            Assert.Equal(Path.Combine(dir, "x.mp4"), FileNamer.Unique(dir, "x"));
+            File.WriteAllText(Path.Combine(dir, "x.mp4"), "");
+            File.WriteAllText(Path.Combine(dir, "x_2.mp4"), "");
+            Assert.Equal(Path.Combine(dir, "x_3.mp4"), FileNamer.Unique(dir, "x"));
+        }
+        finally
+        {
+            Directory.Delete(dir, recursive: true);
+        }
+    }
+}
+
+public class HotkeyTests
+{
+    [Theory]
+    [InlineData("F2", System.Windows.Input.ModifierKeys.None, System.Windows.Input.Key.F2)]
+    [InlineData("Ctrl+Shift+F5", System.Windows.Input.ModifierKeys.Control | System.Windows.Input.ModifierKeys.Shift, System.Windows.Input.Key.F5)]
+    [InlineData("alt + f9", System.Windows.Input.ModifierKeys.Alt, System.Windows.Input.Key.F9)]
+    public void Parses_and_formats(string text, System.Windows.Input.ModifierKeys modifiers, System.Windows.Input.Key key)
+    {
+        Assert.True(Hotkey.TryParse(text, out var m, out var k));
+        Assert.Equal((modifiers, key), (m, k));
+        Assert.True(Hotkey.TryParse(Hotkey.Format(m, k), out var m2, out var k2));
+        Assert.Equal((m, k), (m2, k2));
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData(null)]
+    [InlineData("Ctrl")]
+    [InlineData("F2+F3")]
+    [InlineData("Banana")]
+    [InlineData("Ctrl+LeftShift")]
+    [InlineData("NumLock")]
+    public void Rejects_invalid(string? text) => Assert.False(Hotkey.TryParse(text, out _, out _));
+
+    [Fact]
+    public void Maps_to_win32_with_norepeat()
+    {
+        Hotkey.TryParse("Ctrl+F2", out var m, out var k);
+        Assert.Equal((Hotkey.MOD_CONTROL | Hotkey.MOD_NOREPEAT, 0x71u), Hotkey.ToWin32(m, k));
+    }
+}
+
+public class RecordingSessionTests
+{
+    [Fact]
+    public void Concat_list_escapes_single_quotes()
+    {
+        Assert.Equal("file 'C:\\a.mp4'\nfile 'C:\\Bob'\\''s.mp4'\n", RecordingSession.ConcatList([@"C:\a.mp4", @"C:\Bob's.mp4"]));
+    }
+}
+
 public class PixelRectTests
 {
     [Fact]

@@ -13,14 +13,19 @@ frei definierbarem Aufnahmebereich und Systemsound + Mikrofon.
 - **Codecs**: H.264 / H.265 / AV1 über NVENC, Quick Sync, AMF, Windows Media Foundation, SVT-AV1 (CPU).
   Beim Start wird jeder Encoder per Testkodierung geprüft; angezeigt wird nur, was auf dem Rechner funktioniert.
 - **Ton**: Systemsound (WASAPI Loopback) und Mikrofon, gemischt, als Opus
-- **F2** startet/stoppt die Aufnahme global
-- Deutsch / Englisch (Menü → Sprache)
-- Ausgabe: `%USERPROFILE%\Videos\Screenrecorder\JJJJ-MM-TT_hh-mm-ss.mp4`
+- **Pause**: Aufnahme pausieren und fortsetzen; am Ende entsteht eine einzige Datei
+- **Hotkeys** (global, in den Einstellungen änderbar): **F2** Aufnahme starten/stoppen, **F3** Pause/Fortsetzen,
+  **F4** Bereich auswählen; der aktuelle Hotkey steht unter dem jeweiligen Button
+- **Einstellungen**: Qualitätsregler (kleinere Datei ↔ bessere Qualität), Mauszeiger an/aus, Hotkeys,
+  Ausgabepfad und Dateiname mit Platzhaltern (`<YYYY> <MM> <DD> <HH> <NN> <SS> <Z> <Nr>`), Sprache (Deutsch/Englisch),
+  Farbschema (Windows/Hell/Dunkel), Info mit Lizenzen
+- Standard-Ausgabe: `%USERPROFILE%\Videos\Screenrecorder\Aufnahme_JJJJ_MM_TT_hh_mm_ss_zzz.mp4`
 
 ## Installation
 
-Release-ZIP entpacken und `Screenrecorder.exe` starten. `ffmpeg.exe` liegt bei. Ohne sie wird `ffmpeg.exe` im
-`PATH` gesucht.
+`Screenrecorder-vX.Y.Z.exe` aus dem Release herunterladen und starten, mehr braucht es nicht. Die eingebettete
+LGPL-`ffmpeg.exe` wird beim ersten Start nach `%LOCALAPPDATA%\Screenrecorder\ffmpeg\<Version>\` entpackt.
+Eine eigene `ffmpeg.exe` neben der EXE hat Vorrang.
 
 ## Hinweise
 
@@ -46,12 +51,15 @@ Die A/V-Sync-Messung blendet kurz ein weißes Fenster oben links ein und spielt 
 ## Release
 
 ```powershell
-git tag v0.1.0
-git push origin v0.1.0
+git tag v0.2.0
+git push origin v0.2.0
 ```
 
-Die GitHub Action baut eine self-contained Single-File-EXE, legt eine LGPL-`ffmpeg.exe` dazu (bricht bei einem
-GPL-Build ab) und veröffentlicht das ZIP als GitHub Release.
+Die GitHub Action lädt eine LGPL-`ffmpeg.exe` (bricht bei einem GPL-Build ab), bettet sie samt Lizenztext ein und
+veröffentlicht eine self-contained Single-File-EXE plus `THIRD-PARTY-NOTICES.md` als GitHub Release.
+Lokale Builds betten nichts ein und nutzen `ffmpeg` aus dem `PATH`.
+
+Das App-Icon wird mit `dotnet run tools/make-icon.cs -- src/Screenrecorder/Assets/app.ico preview.png` erzeugt.
 
 ## Lizenz
 

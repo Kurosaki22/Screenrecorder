@@ -7,6 +7,8 @@
     <IsPackable>false</IsPackable>
     <!-- WinForms only for the A/V sync integration test's flash window -->
     <UseWindowsForms>true</UseWindowsForms>
+    <!-- Key / ModifierKeys for the hotkey tests -->
+    <UseWPF>true</UseWPF>
   </PropertyGroup>
 
   <ItemGroup>
@@ -22,6 +24,8 @@
 
   <ItemGroup>
     <Using Include="Xunit" />
+    <!-- UseWPF drops System.IO from the implicit usings -->
+    <Using Include="System.IO" />
   </ItemGroup>
 
 </Project>

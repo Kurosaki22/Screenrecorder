@@ -480,3 +480,6 @@ $RECYCLE.BIN/
 
 # Vim temporary swap files
 *.swp
+
+# LGPL ffmpeg build embedded by CI (see .github/workflows/ci.yml)
+src/Screenrecorder/ffmpeg/

@@ -29,10 +29,9 @@ public class RecorderIntegrationTests(ITestOutputHelper log)
         if (ffmpeg is null || displays.Count == 0) return; // no environment to record in
 
         var output = TempFile();
-        var area = Displays.Locate(new PixelRect(displays[0].Bounds.X, displays[0].Bounds.Y, 640, 360), displays);
         try
         {
-            var rec = Recorder.Start(ffmpeg, area, Encoder, 30, systemAudio: true, microphone: false, output);
+            var rec = Recorder.Start(ffmpeg, Options(displays, new PixelRect(displays[0].Bounds.X, displays[0].Bounds.Y, 640, 360)), output);
             string? failure = null;
             rec.Failed += m => failure = m;
             await Task.Delay(TimeSpan.FromSeconds(3));
@@ -40,11 +39,7 @@ public class RecorderIntegrationTests(ITestOutputHelper log)
             await rec.StopAsync();
             Assert.Null(failure);
 
-            // One "codec,duration" line per stream, e.g. "h264,3.000000" / "opus,2.990000".
-            var streams = Run("ffprobe", $"-v error -show_entries stream=codec_name,duration -of csv=p=0 \"{output}\"").stdout
-                .Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-                .Select(l => l.Split(','))
-                .ToDictionary(p => p[0], p => double.Parse(p[1], CultureInfo.InvariantCulture));
+            var streams = Streams(output);
             log.WriteLine($"video {streams["h264"]:0.000}s, audio {streams["opus"]:0.000}s");
             Assert.InRange(streams["h264"], 2.0, 4.0);
             // Silent loopback delivers no buffers; padding must keep the audio track about as long as the video.
@@ -69,8 +64,7 @@ public class RecorderIntegrationTests(ITestOutputHelper log)
         {
             using (var flasher = new Flasher())
             {
-                var rec = Recorder.Start(ffmpeg, Displays.Locate(new PixelRect(0, 0, 640, 360), displays), Encoder, 60,
-                    systemAudio: true, microphone: false, output);
+                var rec = Recorder.Start(ffmpeg, Options(displays, new PixelRect(0, 0, 640, 360)) with { Fps = 60 }, output);
                 await Task.Delay(TimeSpan.FromSeconds(1.5));
 
 #pragma warning disable CS0618 // WasapiOut is fine for a test tone
@@ -96,6 +90,49 @@ public class RecorderIntegrationTests(ITestOutputHelper log)
             File.Delete(output);
         }
     }
+
+    [Fact]
+    public async Task Pause_leaves_out_the_paused_time_and_yields_one_file()
+    {
+        var ffmpeg = Recorder.FindFfmpeg();
+        var displays = Displays.Enumerate();
+        if (ffmpeg is null || displays.Count == 0) return;
+
+        var output = TempFile();
+        try
+        {
+            var session = RecordingSession.Start(ffmpeg, Options(displays, new PixelRect(displays[0].Bounds.X, displays[0].Bounds.Y, 640, 360)), output);
+            await Task.Delay(TimeSpan.FromSeconds(2));
+            await session.PauseAsync();
+            var pausedAt = session.Elapsed;
+            await Task.Delay(TimeSpan.FromSeconds(1.5));
+            Assert.Equal(pausedAt, session.Elapsed); // clock stands still while paused
+            Assert.True(session.BytesWritten > 0);
+            session.Resume();
+            await Task.Delay(TimeSpan.FromSeconds(2));
+            Assert.Null(await session.StopAsync());
+
+            var streams = Streams(output);
+            log.WriteLine($"video {streams["h264"]:0.000}s, audio {streams["opus"]:0.000}s");
+            Assert.InRange(streams["h264"], 3.5, 5.0); // ~4 s recorded, the 1.5 s pause is not in the file
+            Assert.InRange(streams["opus"], streams["h264"] - 1.0, streams["h264"] + 0.1);
+            Assert.Empty(Directory.GetFiles(Path.GetDirectoryName(output)!, Path.GetFileNameWithoutExtension(output) + ".part*"));
+        }
+        finally
+        {
+            File.Delete(output);
+        }
+    }
+
+    static RecordOptions Options(IReadOnlyList<Display> displays, PixelRect rect) =>
+        new(Displays.Locate(rect, displays), Encoder, 30, 80, ShowCursor: true, SystemAudio: true, Microphone: false);
+
+    /// <summary>Duration per stream codec, e.g. { h264: 3.0, opus: 2.99 }.</summary>
+    static Dictionary<string, double> Streams(string file) =>
+        Run("ffprobe", $"-v error -show_entries stream=codec_name,duration -of csv=p=0 \"{file}\"").stdout
+            .Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Select(l => l.Split(','))
+            .ToDictionary(p => p[0], p => double.Parse(p[1], CultureInfo.InvariantCulture));
 
     static string TempFile() => Path.Combine(Path.GetTempPath(), $"screenrecorder-test-{Guid.NewGuid():N}.mp4");
 

@@ -7,10 +7,13 @@
     <Window.Resources>
         <Style x:Key="ToolButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
             <Setter Property="Width" Value="84" />
-            <Setter Property="Height" Value="72" />
+            <Setter Property="Height" Value="84" />
             <Setter Property="Margin" Value="2" />
             <Setter Property="Background" Value="Transparent" />
             <Setter Property="BorderThickness" Value="0" />
+            <!-- Top-aligned so icons line up whether or not a hotkey hint is shown -->
+            <Setter Property="VerticalContentAlignment" Value="Top" />
+            <Setter Property="Padding" Value="4,12,4,4" />
         </Style>
         <Style x:Key="Glyph" TargetType="TextBlock">
             <Setter Property="FontFamily" Value="Segoe Fluent Icons, Segoe MDL2 Assets" />
@@ -18,45 +21,63 @@
             <Setter Property="HorizontalAlignment" Value="Center" />
             <Setter Property="Margin" Value="0,0,0,6" />
         </Style>
+        <Style x:Key="Label" TargetType="TextBlock">
+            <Setter Property="HorizontalAlignment" Value="Center" />
+        </Style>
+        <!-- Hotkey hint under a button, e.g. "F2" -->
+        <Style x:Key="HotkeyHint" TargetType="TextBlock">
+            <Setter Property="HorizontalAlignment" Value="Center" />
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="Opacity" Value="0.6" />
+            <Setter Property="Margin" Value="0,2,0,0" />
+        </Style>
     </Window.Resources>
 
     <StackPanel Margin="8">
     <StackPanel Orientation="Horizontal">
-        <Button x:Name="RecordButton" Style="{StaticResource ToolButton}" Click="Record_Click" IsEnabled="False"
-                ToolTip="{x:Static res:Strings.HotkeyHint}">
+        <Button x:Name="RecordButton" Style="{StaticResource ToolButton}" Click="Record_Click" IsEnabled="False">
             <StackPanel>
                 <TextBlock x:Name="RecordGlyph" Style="{StaticResource Glyph}" Text="&#xE7C8;" Foreground="#E53935" />
-                <TextBlock x:Name="RecordText" Text="{x:Static res:Strings.Record}" HorizontalAlignment="Center" />
+                <TextBlock x:Name="RecordText" Text="{x:Static res:Strings.Record}" Style="{StaticResource Label}" />
+                <TextBlock x:Name="RecordHotkey" Style="{StaticResource HotkeyHint}" />
+            </StackPanel>
+        </Button>
+        <Button x:Name="PauseButton" Style="{StaticResource ToolButton}" Click="Pause_Click" Visibility="Collapsed">
+            <StackPanel>
+                <TextBlock x:Name="PauseGlyph" Style="{StaticResource Glyph}" Text="&#xE769;" />
+                <TextBlock x:Name="PauseText" Text="{x:Static res:Strings.Pause}" Style="{StaticResource Label}" />
+                <TextBlock x:Name="PauseHotkey" Style="{StaticResource HotkeyHint}" />
             </StackPanel>
         </Button>
         <Button x:Name="AreaButton" Style="{StaticResource ToolButton}" Click="Area_Click">
             <StackPanel>
                 <TextBlock Style="{StaticResource Glyph}" Text="&#xE7A8;" />
-                <TextBlock Text="{x:Static res:Strings.Area}" HorizontalAlignment="Center" />
+                <TextBlock Text="{x:Static res:Strings.Area}" Style="{StaticResource Label}" />
+                <TextBlock x:Name="AreaHotkey" Style="{StaticResource HotkeyHint}" />
             </StackPanel>
         </Button>
         <Button x:Name="CodecsButton" Style="{StaticResource ToolButton}" Click="Codecs_Click">
             <StackPanel>
                 <TextBlock Style="{StaticResource Glyph}" Text="&#xE714;" />
-                <TextBlock Text="{x:Static res:Strings.Codecs}" HorizontalAlignment="Center" />
+                <TextBlock Text="{x:Static res:Strings.Codecs}" Style="{StaticResource Label}" />
             </StackPanel>
         </Button>
         <Button x:Name="SoundButton" Style="{StaticResource ToolButton}" Click="Sound_Click">
             <StackPanel>
                 <TextBlock Style="{StaticResource Glyph}" Text="&#xE767;" />
-                <TextBlock Text="{x:Static res:Strings.Sound}" HorizontalAlignment="Center" />
+                <TextBlock Text="{x:Static res:Strings.Sound}" Style="{StaticResource Label}" />
             </StackPanel>
         </Button>
         <Button Style="{StaticResource ToolButton}" Click="Open_Click">
             <StackPanel>
                 <TextBlock Style="{StaticResource Glyph}" Text="&#xE838;" />
-                <TextBlock Text="{x:Static res:Strings.Open}" HorizontalAlignment="Center" />
+                <TextBlock Text="{x:Static res:Strings.Open}" Style="{StaticResource Label}" />
             </StackPanel>
         </Button>
-        <Button x:Name="MenuButton" Style="{StaticResource ToolButton}" Click="Menu_Click">
+        <Button x:Name="SettingsButton" Style="{StaticResource ToolButton}" Width="112" Click="Settings_Click">
             <StackPanel>
-                <TextBlock Style="{StaticResource Glyph}" Text="&#xE700;" />
-                <TextBlock Text="{x:Static res:Strings.Menu}" HorizontalAlignment="Center" />
+                <TextBlock Style="{StaticResource Glyph}" Text="&#xE713;" />
+                <TextBlock Text="{x:Static res:Strings.Settings}" Style="{StaticResource Label}" />
             </StackPanel>
         </Button>
     </StackPanel>

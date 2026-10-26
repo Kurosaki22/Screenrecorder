@@ -5,6 +5,8 @@ namespace Screenrecorder;
 
 public enum AreaMode { Region, PrimaryScreen, SecondaryScreen, AllScreens }
 
+public enum ThemeChoice { System, Light, Dark }
+
 public sealed class Settings
 {
     public AreaMode Area { get; set; } = AreaMode.Region;
@@ -17,12 +19,25 @@ public sealed class Settings
     public string Language { get; set; } = "";
     /// <summary>User-defined sizes, e.g. "1600x900".</summary>
     public List<string> CustomSizes { get; set; } = [];
+    /// <summary>1 = smallest file … 100 = best quality; see VideoEncoder.QualityArgs.</summary>
+    public int Quality { get; set; } = 80;
+    public bool ShowCursor { get; set; } = true;
+    public ThemeChoice Theme { get; set; } = ThemeChoice.System;
+    public string HotkeyRecord { get; set; } = "F2";
+    public string HotkeyPause { get; set; } = "F3";
+    public string HotkeySelectArea { get; set; } = "F4";
+    public string OutputFolder { get; set; } = DefaultOutputFolder;
+    public string FileNamePattern { get; set; } = FileNamer.DefaultPattern;
+    /// <summary>Value of the &lt;Nr&gt; placeholder for the next recording.</summary>
+    public int NextNumber { get; set; } = 1;
 
     static readonly string FilePath = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Screenrecorder", "settings.json");
 
-    public static string OutputFolder => Path.Combine(
+    public static string DefaultOutputFolder => Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.MyVideos), "Screenrecorder");
+
+    public Settings Clone() => JsonSerializer.Deserialize<Settings>(JsonSerializer.Serialize(this))!;
 
     public static Settings Load()
     {

@@ -7,6 +7,8 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
     <ApplicationManifest>app.manifest</ApplicationManifest>
+    <!-- Rendered by tools/make-icon.cs -->
+    <ApplicationIcon>Assets\app.ico</ApplicationIcon>
     <!-- WPF0001: Fluent ThemeMode is flagged experimental -->
     <NoWarn>$(NoWarn);WPF0001</NoWarn>
     <Product>Screenrecorder</Product>
@@ -18,5 +20,18 @@
     <PackageReference Include="Vortice.DXGI" Version="3.8.3" />
   </ItemGroup>
 
+  <!-- Shown under Settings > About; LGPL requires shipping the license texts with the program. -->
+  <ItemGroup>
+    <EmbeddedResource Include="..\..\LICENSE" LogicalName="LICENSE" />
+    <EmbeddedResource Include="..\..\THIRD-PARTY-NOTICES.md" LogicalName="THIRD-PARTY-NOTICES.md" />
+  </ItemGroup>
+
+  <!-- Release builds: CI drops the LGPL ffmpeg build into ffmpeg\ (gitignored) so the app ships as one exe.
+       Without it, Recorder.FindFfmpeg falls back to ffmpeg on PATH. -->
+  <ItemGroup>
+    <EmbeddedResource Include="ffmpeg\ffmpeg.exe" LogicalName="ffmpeg.exe" Condition="Exists('ffmpeg\ffmpeg.exe')" />
+    <EmbeddedResource Include="ffmpeg\FFMPEG-LICENSE.txt" LogicalName="FFMPEG-LICENSE.txt" Condition="Exists('ffmpeg\FFMPEG-LICENSE.txt')" />
+    <EmbeddedResource Include="ffmpeg\FFMPEG-VERSION.txt" LogicalName="FFMPEG-VERSION.txt" Condition="Exists('ffmpeg\FFMPEG-VERSION.txt')" />
+  </ItemGroup>
 
 </Project>

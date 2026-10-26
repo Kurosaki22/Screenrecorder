@@ -13,19 +13,17 @@ namespace Screenrecorder;
 
 public partial class MainWindow : Window
 {
-    const int HotkeyId = 1;
-    const uint MOD_NOREPEAT = 0x4000;
+    const int HotkeyRecordId = 1, HotkeyPauseId = 2, HotkeySelectAreaId = 3;
     static readonly string[] Presets16x9 = ["640x360", "800x450", "1024x576"];
     static readonly string[] Presets4x3 = ["640x480", "800x600", "1024x768"];
     static readonly string[] PresetsYoutube = ["1280x720", "1920x1080"];
 
-    readonly Settings settings;
+    Settings settings;
     readonly RegionFrameWindow frame = new();
     readonly DispatcherTimer statusTimer = new() { Interval = TimeSpan.FromMilliseconds(500) };
-    readonly Stopwatch recordingClock = new();
     string? ffmpeg;
     List<VideoEncoder>? encoders;
-    Recorder? recorder;
+    RecordingSession? session;
     bool busy;
 
     public MainWindow(Settings settings)
@@ -36,6 +34,8 @@ public partial class MainWindow : Window
         Loaded += OnLoaded;
     }
 
+    IntPtr Hwnd => new WindowInteropHelper(this).Handle;
+
     async void OnLoaded(object? sender, RoutedEventArgs e)
     {
         frame.Owner = this;
@@ -43,18 +43,18 @@ public partial class MainWindow : Window
         frame.Region = OnScreen(settings.Region);
         ApplyAreaMode();
 
-        var hwnd = new WindowInteropHelper(this).Handle;
-        HwndSource.FromHwnd(hwnd).AddHook(WndProc);
-        Native.RegisterHotKey(hwnd, HotkeyId, MOD_NOREPEAT, Native.VK_F2);
+        HwndSource.FromHwnd(Hwnd).AddHook(WndProc);
+        RegisterHotkeys();
 
         // Record stays disabled (XAML) until a working encoder is known.
-        ffmpeg = Recorder.FindFfmpeg();
+        Title = Strings.DetectingCodecs;
+        ffmpeg = await Task.Run(Recorder.FindFfmpeg); // may unpack the embedded ffmpeg on first start
         if (ffmpeg is null)
         {
+            Title = "Screenrecorder";
             MessageBox.Show(this, Strings.FfmpegMissing, Title, MessageBoxButton.OK, MessageBoxImage.Error);
             return;
         }
-        Title = Strings.DetectingCodecs;
         encoders = await Encoders.DetectAsync(ffmpeg);
         Title = "Screenrecorder";
         if (encoders.Count == 0)
@@ -67,13 +67,44 @@ public partial class MainWindow : Window
         RecordButton.IsEnabled = true;
     }
 
+    // ---------- Hotkeys ----------
+
+    /// <summary>(Re)registers all hotkeys from the settings and reports keys another program already owns.</summary>
+    void RegisterHotkeys()
+    {
+        UnregisterHotkeys();
+        var taken = new List<string>();
+        foreach (var (id, text, hint) in new[]
+        {
+            (HotkeyRecordId, settings.HotkeyRecord, RecordHotkey),
+            (HotkeyPauseId, settings.HotkeyPause, PauseHotkey),
+            (HotkeySelectAreaId, settings.HotkeySelectArea, AreaHotkey),
+        })
+        {
+            hint.Text = "";
+            if (!Hotkey.TryParse(text, out var modifiers, out var key)) continue;
+            var (mod, vk) = Hotkey.ToWin32(modifiers, key);
+            if (Native.RegisterHotKey(Hwnd, id, mod, vk))
+                hint.Text = Hotkey.Format(modifiers, key);
+            else
+                taken.Add(Hotkey.Format(modifiers, key));
+        }
+        if (taken.Count > 0)
+            MessageBox.Show(this, string.Format(Strings.HotkeyTaken, string.Join(", ", taken)), Title,
+                MessageBoxButton.OK, MessageBoxImage.Warning);
+    }
+
     IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
     {
-        if (msg == Native.WM_HOTKEY && wParam == HotkeyId && RecordButton.IsEnabled)
+        if (msg != Native.WM_HOTKEY) return IntPtr.Zero;
+        switch ((int)wParam)
         {
-            ToggleRecording();
-            handled = true;
+            case HotkeyRecordId when RecordButton.IsEnabled: ToggleRecording(); break;
+            case HotkeyPauseId when session is not null: TogglePause(); break;
+            case HotkeySelectAreaId when session is null && IsEnabled: SelectArea(); break;
+            default: return IntPtr.Zero;
         }
+        handled = true;
         return IntPtr.Zero;
     }
 
@@ -92,21 +123,40 @@ public partial class MainWindow : Window
 
     void Record_Click(object sender, RoutedEventArgs e) => ToggleRecording();
 
+    void Pause_Click(object sender, RoutedEventArgs e) => TogglePause();
+
     async void ToggleRecording()
     {
         if (busy || ffmpeg is null || encoders is null) return;
         busy = true;
         try
         {
-            if (recorder is not null)
-            {
-                var r = recorder;
-                recorder = null;
-                await r.StopAsync();
-                SetRecordingUi(false);
-            }
+            if (session is not null)
+                await StopRecording();
             else
                 StartRecording();
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+
+    async void TogglePause()
+    {
+        if (busy || session is null) return;
+        busy = true;
+        try
+        {
+            if (session.IsPaused)
+                session.Resume();
+            else
+                await session.PauseAsync();
+            UpdatePauseUi();
+        }
+        catch (Exception ex)
+        {
+            ShowFailure(ex.Message);
         }
         finally
         {
@@ -135,27 +185,39 @@ public partial class MainWindow : Window
             default: rect = frame.Region; break;
         }
 
-        var encoder = encoders!.First(x => x.Name == settings.Encoder);
-        var path = Path.Combine(Settings.OutputFolder, $"{DateTime.Now:yyyy-MM-dd_HH-mm-ss}.mp4");
+        var options = new RecordOptions(Displays.Locate(rect, displays), encoders!.First(x => x.Name == settings.Encoder),
+            settings.Fps, settings.Quality, settings.ShowCursor, settings.SystemAudio, settings.Microphone);
         try
         {
-            recorder = Recorder.Start(ffmpeg!, Displays.Locate(rect, displays), encoder, settings.Fps,
-                settings.SystemAudio, settings.Microphone, path);
+            Directory.CreateDirectory(settings.OutputFolder);
+            var path = FileNamer.Unique(settings.OutputFolder,
+                FileNamer.Format(settings.FileNamePattern, DateTime.Now, settings.NextNumber));
+            session = RecordingSession.Start(ffmpeg!, options, path);
         }
         catch (Exception ex)
         {
             ShowFailure(ex.Message);
             return;
         }
-        var started = recorder;
-        started.Failed += message => Dispatcher.Invoke(() =>
+        settings.NextNumber++;
+        var started = session;
+        started.Failed += message => Dispatcher.Invoke(async () =>
         {
-            if (recorder != started) return;
-            recorder = null;
+            if (session != started) return;
+            session = null;
             SetRecordingUi(false);
             ShowFailure(message);
+            await started.StopAsync(); // keep whatever segments were finished
         });
         SetRecordingUi(true);
+    }
+
+    async Task StopRecording()
+    {
+        var s = session!;
+        session = null;
+        SetRecordingUi(false);
+        if (await s.StopAsync() is string error) ShowFailure(error);
     }
 
     void ShowFailure(string details) =>
@@ -165,13 +227,13 @@ public partial class MainWindow : Window
     {
         RecordGlyph.Text = on ? "" : "";
         RecordText.Text = on ? Strings.Stop : Strings.Record;
-        AreaButton.IsEnabled = CodecsButton.IsEnabled = SoundButton.IsEnabled = MenuButton.IsEnabled = !on;
+        PauseButton.Visibility = on ? Visibility.Visible : Visibility.Collapsed;
+        AreaButton.IsEnabled = CodecsButton.IsEnabled = SoundButton.IsEnabled = SettingsButton.IsEnabled = !on;
         frame.Recording = on;
         StatusText.Visibility = on ? Visibility.Visible : Visibility.Collapsed;
         if (on)
         {
-            recordingClock.Restart();
-            UpdateStatus();
+            UpdatePauseUi();
             statusTimer.Start();
         }
         else
@@ -181,32 +243,45 @@ public partial class MainWindow : Window
         }
     }
 
+    void UpdatePauseUi()
+    {
+        var paused = session?.IsPaused == true;
+        PauseGlyph.Text = paused ? "" : "";
+        PauseText.Text = paused ? Strings.Resume : Strings.Pause;
+        UpdateStatus();
+    }
+
     void UpdateStatus()
     {
-        if (recorder is null) return;
-        var mb = recorder.BytesWritten / (1024.0 * 1024.0);
-        var text = $"{Strings.Recording} {recordingClock.Elapsed:hh\\:mm\\:ss} · {mb:0.0} MB";
+        if (session is null) return;
+        var mb = session.BytesWritten / (1024.0 * 1024.0);
+        var (dot, label) = session.IsPaused ? ("⏸ ", Strings.Paused) : ("● ", Strings.Recording);
+        var text = $"{label} {session.Elapsed:hh\\:mm\\:ss} · {mb:0.0} MB";
         StatusText.Inlines.Clear();
-        StatusText.Inlines.Add(new Run("● ") { Foreground = RecordGlyph.Foreground });
+        StatusText.Inlines.Add(new Run(dot) { Foreground = RecordGlyph.Foreground });
         StatusText.Inlines.Add(new Run(text));
-        Title = "● " + text;
+        Title = dot + text;
     }
 
     protected override async void OnClosing(CancelEventArgs e)
     {
         base.OnClosing(e);
-        if (recorder is not null)
+        if (session is not null)
         {
             e.Cancel = true; // finish the file first, then close for real
-            var r = recorder;
-            recorder = null;
-            await r.StopAsync();
+            await StopRecording();
             Close();
             return;
         }
         settings.Region = frame.Region;
         settings.Save();
-        Native.UnregisterHotKey(new WindowInteropHelper(this).Handle, HotkeyId);
+        UnregisterHotkeys();
+    }
+
+    void UnregisterHotkeys()
+    {
+        foreach (var id in new[] { HotkeyRecordId, HotkeyPauseId, HotkeySelectAreaId })
+            Native.UnregisterHotKey(Hwnd, id);
     }
 
     // ---------- Menus ----------
@@ -248,7 +323,9 @@ public partial class MainWindow : Window
         items.Add(Item(Strings.PrimaryScreen, () => SetArea(AreaMode.PrimaryScreen), settings.Area == AreaMode.PrimaryScreen));
         items.Add(Item(Strings.SecondaryScreen, () => SetArea(AreaMode.SecondaryScreen), settings.Area == AreaMode.SecondaryScreen));
         items.Add(new Separator());
-        items.Add(Item(Strings.SelectArea, SelectArea));
+        var select = Item(Strings.SelectArea, SelectArea);
+        select.InputGestureText = AreaHotkey.Text;
+        items.Add(select);
         items.Add(Item(Strings.ResizeArea, () =>
         {
             var text = InputDialog.Ask(this, Strings.ResizeArea, Strings.SizePrompt, current);
@@ -336,19 +413,22 @@ public partial class MainWindow : Window
 
     void Open_Click(object sender, RoutedEventArgs e)
     {
-        Directory.CreateDirectory(Settings.OutputFolder);
-        Process.Start("explorer.exe", Settings.OutputFolder);
+        Directory.CreateDirectory(settings.OutputFolder);
+        Process.Start("explorer.exe", settings.OutputFolder);
     }
 
-    void Menu_Click(object sender, RoutedEventArgs e)
+    void Settings_Click(object sender, RoutedEventArgs e)
     {
-        var language = new MenuItem { Header = Strings.Language };
-        foreach (var (code, name) in new[] { ("", Strings.LanguageSystem), ("de", "Deutsch"), ("en", "English") })
-            language.Items.Add(Item(name, () =>
-            {
-                settings.Language = code;
-                MessageBox.Show(this, Strings.RestartHint, Title);
-            }, settings.Language == code));
-        ShowMenu(MenuButton, [language, new Separator(), Item(Strings.Exit, Close)]);
+        // Global hotkeys would swallow the keys the user wants to assign, so release them while the dialog is open.
+        UnregisterHotkeys();
+        var dialog = new SettingsWindow(settings.Clone(), ffmpeg) { Owner = this };
+        if (dialog.ShowDialog() == true)
+        {
+            settings = dialog.Result;
+            settings.Region = frame.Region;
+            settings.Save();
+            App.ApplyTheme(settings.Theme);
+        }
+        RegisterHotkeys();
     }
 }

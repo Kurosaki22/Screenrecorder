@@ -30,16 +30,15 @@ public sealed class Recorder
         OutputPath = outputPath;
     }
 
-    public static Recorder Start(string ffmpegPath, CaptureArea area, VideoEncoder encoder, int fps,
-        bool systemAudio, bool microphone, string outputPath)
+    public static Recorder Start(string ffmpegPath, RecordOptions options, string outputPath)
     {
         var writers = new List<AudioPipeWriter>();
         try
         {
             // shortcut: NAudio 3 marks these IWaveIn classes obsolete in favour of WasapiRecorder; migrate if they get removed.
 #pragma warning disable CS0618
-            if (systemAudio) writers.Add(new AudioPipeWriter(new WasapiLoopbackCapture()));
-            if (microphone) writers.Add(new AudioPipeWriter(new WasapiCapture()));
+            if (options.SystemAudio) writers.Add(new AudioPipeWriter(new WasapiLoopbackCapture()));
+            if (options.Microphone) writers.Add(new AudioPipeWriter(new WasapiCapture()));
 #pragma warning restore CS0618
         }
         catch
@@ -55,7 +54,7 @@ public sealed class Recorder
             RedirectStandardError = true,
             CreateNoWindow = true,
         };
-        foreach (var arg in FfmpegArgs.Build(area, encoder, fps, writers.Select(w => w.Input).ToList(), outputPath))
+        foreach (var arg in FfmpegArgs.Build(options, writers.Select(w => w.Input).ToList(), outputPath))
             psi.ArgumentList.Add(arg);
 
         Directory.CreateDirectory(Path.GetDirectoryName(outputPath)!);
@@ -130,14 +129,45 @@ public sealed class Recorder
         lock (errorTail) return string.Join(Environment.NewLine, errorTail);
     }
 
-    /// <summary>ffmpeg.exe next to the app wins over one on PATH.</summary>
+    /// <summary>
+    /// ffmpeg.exe next to the app (lets users swap the LGPL component), else the copy embedded in the
+    /// single-file release, else one on PATH (development).
+    /// </summary>
     public static string? FindFfmpeg()
     {
-        var local = Path.Combine(AppContext.BaseDirectory, "ffmpeg.exe");
+        var appDir = Path.GetDirectoryName(Environment.ProcessPath) ?? AppContext.BaseDirectory;
+        var local = Path.Combine(appDir, "ffmpeg.exe");
         if (File.Exists(local)) return local;
+
+        using (var embedded = typeof(Recorder).Assembly.GetManifestResourceStream("ffmpeg.exe"))
+            if (embedded is not null)
+                return ExtractIfNeeded(embedded,
+                    Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Screenrecorder", "ffmpeg"),
+                    typeof(Recorder).Assembly.GetName().Version?.ToString() ?? "0");
+
         return (Environment.GetEnvironmentVariable("PATH") ?? "")
             .Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries)
             .Select(dir => Path.Combine(dir.Trim('"'), "ffmpeg.exe"))
             .FirstOrDefault(File.Exists);
+    }
+
+    /// <summary>Writes the embedded ffmpeg to root\version\ffmpeg.exe once and removes other versions' copies.</summary>
+    public static string ExtractIfNeeded(Stream source, string root, string version)
+    {
+        var dir = Path.Combine(root, version);
+        var exe = Path.Combine(dir, "ffmpeg.exe");
+        if (!File.Exists(exe) || new FileInfo(exe).Length != source.Length)
+        {
+            Directory.CreateDirectory(dir);
+            var tmp = exe + ".tmp"; // an interrupted copy never looks like a finished ffmpeg.exe
+            using (var file = File.Create(tmp)) source.CopyTo(file);
+            File.Move(tmp, exe, overwrite: true);
+        }
+        foreach (var old in Directory.GetDirectories(root).Where(d => !string.Equals(d, dir, StringComparison.OrdinalIgnoreCase)))
+        {
+            try { Directory.Delete(old, recursive: true); }
+            catch (Exception e) when (e is IOException or UnauthorizedAccessException) { } // still used by another instance
+        }
+        return exe;
     }
 }
