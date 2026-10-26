@@ -17,6 +17,7 @@ namespace Screenrecorder.Tests;
 /// (high enough that other audio playing on the PC does not trigger the detector).
 /// </summary>
 [Trait("Category", "Integration")]
+[Collection("Desktop")] // these tests put windows on the real screen; run them one after another
 public class RecorderIntegrationTests(ITestOutputHelper log)
 {
     static readonly VideoEncoder Encoder = Encoders.Known.Single(e => e.Name == "h264_mf");
@@ -182,38 +183,92 @@ public class RecorderIntegrationTests(ITestOutputHelper log)
     }
 }
 
-/// <summary>A WinForms window on its own STA thread, shown until disposed (per-monitor DPI aware = physical pixels).</summary>
+/// <summary>
+/// A WinForms window shown until disposed (per-monitor DPI aware = physical pixels). All test windows share one
+/// long-lived STA UI thread: windows created after an earlier Application.Run had ended never appeared on screen.
+/// </summary>
 class TestForm : IDisposable
 {
-    readonly Thread thread;
-    Form? form;
+    static readonly Lazy<Control> Ui = new(() =>
+    {
+        using var ready = new ManualResetEventSlim();
+        Control? marshal = null;
+        var thread = new Thread(() =>
+        {
+            Application.SetHighDpiMode(HighDpiMode.PerMonitorV2);
+            marshal = new Control();
+            marshal.CreateControl(); // gives Invoke a window handle on this thread
+            ready.Set();
+            Application.Run();
+        }) { IsBackground = true };
+        thread.SetApartmentState(ApartmentState.STA);
+        thread.Start();
+        ready.Wait();
+        return marshal!;
+    });
+
+    readonly Form form;
 
     public TestForm(Func<Form> create)
     {
-        using var shown = new ManualResetEventSlim();
-        thread = new Thread(() =>
+        form = Ui.Value.Invoke(() =>
         {
-            Application.SetHighDpiMode(HighDpiMode.PerMonitorV2);
-            form = create();
-            form.Shown += (_, _) => shown.Set();
-            Application.Run(form);
+            var f = create();
+            f.Show();
+            f.Refresh();
+            return f;
         });
-        thread.SetApartmentState(ApartmentState.STA);
-        thread.Start();
-        shown.Wait();
     }
 
-    public T Invoke<T>(Func<Form, T> action) => form!.Invoke(() => action(form));
-    public void Invoke(Action<Form> action) => form!.Invoke(() => action(form));
+    public T Invoke<T>(Func<Form, T> action) => Ui.Value.Invoke(() => action(form));
+    public void Invoke(Action<Form> action) => Ui.Value.Invoke(() => action(form));
 
-    public void Dispose()
+    public void Dispose() => Ui.Value.Invoke(form.Close);
+}
+
+[Trait("Category", "Integration")]
+[Collection("Desktop")] // these tests put windows on the real screen; run them one after another
+public class ExcludeFromCaptureTests
+{
+    [Fact]
+    public void Excluded_window_does_not_show_up_in_desktop_duplication()
     {
-        form!.Invoke(form.Close);
-        thread.Join();
+        if (Recorder.FindFfmpeg() is not string ffmpeg || Displays.Enumerate().FirstOrDefault(d => d.IsPrimary) is not Display primary) return;
+        using var window = new TestForm(() => new Form
+        {
+            FormBorderStyle = FormBorderStyle.None, TopMost = true, ShowInTaskbar = false,
+            StartPosition = FormStartPosition.Manual, Bounds = new Rectangle(0, 0, 300, 200), BackColor = Color.Red,
+        });
+        Thread.Sleep(500);
+        var before = AverageColor(ffmpeg, primary.OutputIndex);
+        Assert.True(IsRed(before), $"control: the red window should be captured before it is excluded, got {before}");
+
+        Assert.True(window.Invoke(f => Native.ExcludeFromCapture(f.Handle)));
+        Thread.Sleep(500);
+        var after = AverageColor(ffmpeg, primary.OutputIndex);
+        Assert.False(IsRed(after), $"excluded window still appears in the capture: {after}");
+    }
+
+    static bool IsRed((int R, int G, int B) c) => c.R > 200 && c.G < 60 && c.B < 60;
+
+    /// <summary>Grabs the 200x150 top-left corner of the monitor via ddagrab and averages it to one RGB pixel.</summary>
+    static (int R, int G, int B) AverageColor(string ffmpeg, int outputIndex)
+    {
+        var psi = new ProcessStartInfo(ffmpeg,
+            $"-hide_banner -loglevel error -f lavfi -i ddagrab=output_idx={outputIndex}:video_size=200x150 -frames:v 1 " +
+            "-vf hwdownload,format=bgra,scale=1:1:flags=area,format=rgb24 -f rawvideo -")
+        { RedirectStandardOutput = true, CreateNoWindow = true };
+        using var p = Process.Start(psi)!;
+        var ms = new MemoryStream();
+        p.StandardOutput.BaseStream.CopyTo(ms);
+        p.WaitForExit();
+        var rgb = ms.ToArray();
+        return rgb.Length == 3 ? (rgb[0], rgb[1], rgb[2]) : (-1, -1, -1);
     }
 }
 
 [Trait("Category", "Integration")]
+[Collection("Desktop")] // these tests put windows on the real screen; run them one after another
 public class WindowPickerTests
 {
     [Fact]

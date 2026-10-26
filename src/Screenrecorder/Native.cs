@@ -2,17 +2,36 @@ using System.Runtime.InteropServices;
 
 namespace Screenrecorder;
 
-static class Native
+public static class Native
 {
     public const int WM_HOTKEY = 0x0312;
-    public const uint VK_F2 = 0x71;
     const uint SWP_NOZORDER = 0x0004, SWP_NOACTIVATE = 0x0010;
+    const uint WDA_EXCLUDEFROMCAPTURE = 0x11, MONITOR_DEFAULTTONEAREST = 2;
 
     [StructLayout(LayoutKind.Sequential)]
     struct RECT { public int Left, Top, Right, Bottom; }
 
     [StructLayout(LayoutKind.Sequential)]
     struct POINT { public int X, Y; }
+
+    [StructLayout(LayoutKind.Sequential)]
+    struct MONITORINFO { public int Size; public RECT Monitor, Work; public uint Flags; }
+
+    [DllImport("user32.dll")] static extern bool SetWindowDisplayAffinity(IntPtr hWnd, uint affinity);
+    [DllImport("user32.dll")] static extern IntPtr MonitorFromRect(ref RECT rect, uint flags);
+    [DllImport("user32.dll")] static extern bool GetMonitorInfo(IntPtr monitor, ref MONITORINFO info);
+
+    /// <summary>Hides the window from every screen capture (Desktop Duplication, GDI, Graphics Capture). Windows 10 2004+.</summary>
+    public static bool ExcludeFromCapture(IntPtr hwnd) => SetWindowDisplayAffinity(hwnd, WDA_EXCLUDEFROMCAPTURE);
+
+    /// <summary>Work area (monitor minus taskbar) of the monitor that holds most of the rectangle.</summary>
+    public static PixelRect WorkAreaFor(PixelRect r)
+    {
+        var rect = new RECT { Left = r.X, Top = r.Y, Right = r.Right, Bottom = r.Bottom };
+        var info = new MONITORINFO { Size = Marshal.SizeOf<MONITORINFO>() };
+        GetMonitorInfo(MonitorFromRect(ref rect, MONITOR_DEFAULTTONEAREST), ref info);
+        return new PixelRect(info.Work.Left, info.Work.Top, info.Work.Right - info.Work.Left, info.Work.Bottom - info.Work.Top);
+    }
 
     [DllImport("user32.dll")] public static extern bool RegisterHotKey(IntPtr hWnd, int id, uint modifiers, uint vk);
     [DllImport("user32.dll")] public static extern bool UnregisterHotKey(IntPtr hWnd, int id);

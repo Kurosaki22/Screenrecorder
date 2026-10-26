@@ -179,6 +179,44 @@ public class RecordingSessionTests
     }
 }
 
+public class MiniBarPlacementTests
+{
+    // 2560x1440 monitor with a 48 px taskbar at the bottom.
+    static readonly PixelRect Work = new(0, 0, 2560, 1392);
+    const int W = 300, H = 40, Gap = 6;
+
+    [Fact]
+    public void Goes_below_left_when_there_is_room()
+    {
+        Assert.Equal((200, 836), MiniBarPlacement.Place(new PixelRect(200, 100, 1286, 730), W, H, Work, Gap));
+    }
+
+    [Fact]
+    public void Goes_above_left_when_the_area_touches_the_taskbar()
+    {
+        Assert.Equal((200, 554), MiniBarPlacement.Place(new PixelRect(200, 600, 1286, 780), W, H, Work, Gap));
+    }
+
+    [Fact]
+    public void Goes_inside_bottom_left_when_the_area_fills_the_screen()
+    {
+        Assert.Equal((0, 1346), MiniBarPlacement.Place(new PixelRect(0, 0, 2560, 1440), W, H, Work, Gap));
+    }
+
+    [Fact]
+    public void Is_clamped_to_the_work_area_horizontally()
+    {
+        Assert.Equal((2560 - W, 836), MiniBarPlacement.Place(new PixelRect(2400, 100, 150, 730), W, H, Work, Gap));
+    }
+
+    [Fact]
+    public void Works_on_a_monitor_left_of_the_primary()
+    {
+        var left = new PixelRect(-1920, 0, 1920, 1032);
+        Assert.Equal((-1800, 506), MiniBarPlacement.Place(new PixelRect(-1800, 100, 800, 400), W, H, left, Gap));
+    }
+}
+
 public class PixelRectTests
 {
     [Fact]

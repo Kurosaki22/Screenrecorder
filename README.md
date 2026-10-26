@@ -9,7 +9,9 @@ frei definierbarem Aufnahmebereich und Systemsound + Mikrofon.
   Hauptbildschirm, zweiter Bildschirm, ganzer Desktop
 - **Bereich auswählen** schlägt beim Überfahren das Fenster bzw. den Fensterteil unter der Maus vor (z. B. die
   Webseitenfläche im Browser); Klick übernimmt, Ziehen zeichnet frei
-- **Während der Aufnahme**: Laufzeit und aktuelle Dateigröße im Fenster und in der Titelleiste
+- **Während der Aufnahme**: Laufzeit und aktuelle Dateigröße im Fenster und in der Titelleiste. Eine kleine
+  Steuerleiste (Zeit, Größe, Pause/Fortsetzen, Stopp) sitzt unten links am Rahmen, oben links wenn unten kein Platz ist;
+  sie wird nie mitaufgenommen. Der Rahmen ist rot bei Aufnahme und orange bei Pause.
 - **Codecs**: H.264 / H.265 / AV1 über NVENC, Quick Sync, AMF, Windows Media Foundation, SVT-AV1 (CPU).
   Beim Start wird jeder Encoder per Testkodierung geprüft; angezeigt wird nur, was auf dem Rechner funktioniert.
 - **Ton**: Systemsound (WASAPI Loopback) und Mikrofon, gemischt, als Opus

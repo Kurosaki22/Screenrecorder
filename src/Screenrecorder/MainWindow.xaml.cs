@@ -20,6 +20,7 @@ public partial class MainWindow : Window
 
     Settings settings;
     readonly RegionFrameWindow frame = new();
+    readonly MiniBar miniBar = new();
     readonly DispatcherTimer statusTimer = new() { Interval = TimeSpan.FromMilliseconds(500) };
     string? ffmpeg;
     List<VideoEncoder>? encoders;
@@ -42,6 +43,9 @@ public partial class MainWindow : Window
         frame.Show();
         frame.Region = OnScreen(settings.Region);
         ApplyAreaMode();
+        miniBar.Owner = this;
+        miniBar.PauseClicked += TogglePause;
+        miniBar.StopClicked += ToggleRecording;
 
         HwndSource.FromHwnd(Hwnd).AddHook(WndProc);
         RegisterHotkeys();
@@ -210,6 +214,8 @@ public partial class MainWindow : Window
             await started.StopAsync(); // keep whatever segments were finished
         });
         SetRecordingUi(true);
+        // Dock the mini bar to what is visibly framed: the frame window incl. its size label, or the recorded screen.
+        miniBar.ShowAt(settings.Area == AreaMode.Region ? Native.GetWindowRect(new WindowInteropHelper(frame).Handle) : rect);
     }
 
     async Task StopRecording()
@@ -239,6 +245,7 @@ public partial class MainWindow : Window
         else
         {
             statusTimer.Stop();
+            miniBar.Hide();
             Title = "Screenrecorder";
         }
     }
@@ -248,6 +255,7 @@ public partial class MainWindow : Window
         var paused = session?.IsPaused == true;
         PauseGlyph.Text = paused ? "" : "";
         PauseText.Text = paused ? Strings.Resume : Strings.Pause;
+        frame.Paused = paused;
         UpdateStatus();
     }
 
@@ -261,7 +269,11 @@ public partial class MainWindow : Window
         StatusText.Inlines.Add(new Run(dot) { Foreground = RecordGlyph.Foreground });
         StatusText.Inlines.Add(new Run(text));
         Title = dot + text;
+        miniBar.Update(text, session.IsPaused,
+            WithHotkey(session.IsPaused ? Strings.Resume : Strings.Pause, PauseHotkey.Text), WithHotkey(Strings.Stop, RecordHotkey.Text));
     }
+
+    static string WithHotkey(string label, string hotkey) => hotkey == "" ? label : $"{label} ({hotkey})";
 
     protected override async void OnClosing(CancelEventArgs e)
     {

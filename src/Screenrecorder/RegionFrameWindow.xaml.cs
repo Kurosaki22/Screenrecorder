@@ -11,8 +11,9 @@ public partial class RegionFrameWindow : Window
     const double BorderDip = 4, HeaderDip = 24;
     static readonly Brush IdleBrush = new SolidColorBrush(Color.FromRgb(0x2B, 0x88, 0xD8));
     static readonly Brush RecordingBrush = new SolidColorBrush(Color.FromRgb(0xE5, 0x39, 0x35));
+    static readonly Brush PausedBrush = new SolidColorBrush(Color.FromRgb(0xFB, 0x8C, 0x00));
 
-    bool recording;
+    bool recording, paused;
 
     public RegionFrameWindow()
     {
@@ -52,10 +53,24 @@ public partial class RegionFrameWindow : Window
         set
         {
             recording = value;
-            Frame.BorderBrush = value ? RecordingBrush : IdleBrush;
+            if (!value) paused = false;
+            UpdateBrush();
             ResizeMode = value ? ResizeMode.NoResize : ResizeMode.CanResize;
         }
     }
+
+    /// <summary>Orange frame while a recording is paused.</summary>
+    public bool Paused
+    {
+        get => paused;
+        set
+        {
+            paused = value;
+            UpdateBrush();
+        }
+    }
+
+    void UpdateBrush() => Frame.BorderBrush = !recording ? IdleBrush : paused ? PausedBrush : RecordingBrush;
 
     void UpdateText() => SizeText.Text = Region.ToString();
 
