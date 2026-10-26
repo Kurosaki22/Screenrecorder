@@ -46,21 +46,24 @@ public partial class MainWindow : Window
         HwndSource.FromHwnd(hwnd).AddHook(WndProc);
         Native.RegisterHotKey(hwnd, HotkeyId, MOD_NOREPEAT, Native.VK_F2);
 
+        // Record stays disabled (XAML) until a working encoder is known.
         ffmpeg = Recorder.FindFfmpeg();
         if (ffmpeg is null)
         {
-            RecordButton.IsEnabled = false;
             MessageBox.Show(this, Strings.FfmpegMissing, Title, MessageBoxButton.OK, MessageBoxImage.Error);
             return;
         }
+        Title = Strings.DetectingCodecs;
         encoders = await Encoders.DetectAsync(ffmpeg);
+        Title = "Screenrecorder";
         if (encoders.Count == 0)
         {
-            RecordButton.IsEnabled = false;
             MessageBox.Show(this, Strings.NoCodecs, Title, MessageBoxButton.OK, MessageBoxImage.Error);
+            return;
         }
-        else if (!encoders.Any(x => x.Name == settings.Encoder))
+        if (!encoders.Any(x => x.Name == settings.Encoder))
             settings.Encoder = encoders[0].Name;
+        RecordButton.IsEnabled = true;
     }
 
     IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)

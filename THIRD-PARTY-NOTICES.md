@@ -1,12 +1,12 @@
 # Third-party notices
 
-## FFmpeg (LGPL-2.1-or-later)
+## FFmpeg (LGPL-3.0-or-later)
 
 Screenrecorder ships an unmodified `ffmpeg.exe` and runs it as a separate process; it is not linked into the
 application. The binary is an **LGPL** build from https://github.com/BtbN/FFmpeg-Builds (`win64-lgpl` variant).
 The release pipeline rejects builds configured with `--enable-gpl`.
 
-- FFmpeg license: https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html (full text in `FFMPEG-LICENSE.txt`)
+- FFmpeg license: https://www.gnu.org/licenses/lgpl-3.0.html (the build uses `--enable-version3`; full text in `FFMPEG-LICENSE.txt`)
 - Exact FFmpeg version and build configuration: `FFMPEG-VERSION.txt`
 - FFmpeg source code: https://github.com/FFmpeg/FFmpeg (check out the commit named in `FFMPEG-VERSION.txt`)
 - Build scripts used to produce the binary: https://github.com/BtbN/FFmpeg-Builds

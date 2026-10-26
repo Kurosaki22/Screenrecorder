@@ -21,7 +21,7 @@
     </Window.Resources>
 
     <StackPanel Orientation="Horizontal" Margin="8">
-        <Button x:Name="RecordButton" Style="{StaticResource ToolButton}" Click="Record_Click"
+        <Button x:Name="RecordButton" Style="{StaticResource ToolButton}" Click="Record_Click" IsEnabled="False"
                 ToolTip="{x:Static res:Strings.HotkeyHint}">
             <StackPanel>
                 <TextBlock x:Name="RecordGlyph" Style="{StaticResource Glyph}" Text="&#xE7C8;" Foreground="#E53935" />

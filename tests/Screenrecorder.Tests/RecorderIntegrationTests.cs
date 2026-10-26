@@ -13,7 +13,8 @@ namespace Screenrecorder.Tests;
 
 /// <summary>
 /// Needs a real desktop, audio output and ffmpeg/ffprobe; excluded in CI via --filter Category!=Integration.
-/// The sync test briefly flashes a window in the top-left corner and plays a quiet tone.
+/// The sync test briefly flashes a window in the top-left corner and plays a quiet 15 kHz tone
+/// (high enough that other audio playing on the PC does not trigger the detector).
 /// </summary>
 [Trait("Category", "Integration")]
 public class RecorderIntegrationTests(ITestOutputHelper log)
@@ -74,7 +75,7 @@ public class RecorderIntegrationTests(ITestOutputHelper log)
 #pragma warning disable CS0618 // WasapiOut is fine for a test tone
                 using var tone = new WasapiOut(AudioClientShareMode.Shared, true, 20);
 #pragma warning restore CS0618
-                tone.Init(new SignalGenerator(48000, 2) { Frequency = 1000, Gain = 0.2 }.Take(TimeSpan.FromSeconds(1)));
+                tone.Init(new SignalGenerator(48000, 2) { Frequency = 15000, Gain = 0.1 }.Take(TimeSpan.FromSeconds(1)));
                 flasher.White();
                 tone.Play();
 
@@ -113,7 +114,7 @@ public class RecorderIntegrationTests(ITestOutputHelper log)
 
     static double FirstSound(string file)
     {
-        var (_, stderr) = Run("ffmpeg", $"-hide_banner -i \"{file}\" -vn -af silencedetect=n=-30dB:d=0.2 -f null -");
+        var (_, stderr) = Run("ffmpeg", $"-hide_banner -i \"{file}\" -vn -af bandpass=f=15000:w=300,silencedetect=n=-40dB:d=0.2 -f null -");
         var m = Regex.Match(stderr, @"silence_end: ([\d.]+)");
         return m.Success ? double.Parse(m.Groups[1].Value, CultureInfo.InvariantCulture) : throw new InvalidOperationException("No tone found.");
     }

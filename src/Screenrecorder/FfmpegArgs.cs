@@ -18,7 +18,7 @@ public static class FfmpegArgs
                 "-video_size", $"{r.Width}x{r.Height}", "-draw_mouse", "1", "-i", "desktop"]);
 
         foreach (var input in audio)
-            a.AddRange(["-thread_queue_size", "4096", "-f", input.SampleFormat, "-ar", $"{input.SampleRate}",
+            a.AddRange(["-f", input.SampleFormat, "-ar", $"{input.SampleRate}",
                 "-ac", $"{input.Channels}", "-i", input.PipePath]);
 
         a.AddRange(["-map", "0:v"]);
