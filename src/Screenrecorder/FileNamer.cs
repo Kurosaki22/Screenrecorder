@@ -26,11 +26,11 @@ public static class FileNamer
     }
 
     /// <summary>folder\name.mp4, or name_2.mp4, name_3.mp4 … if that file already exists.</summary>
-    public static string Unique(string folder, string name)
+    public static string Unique(string folder, string name, string extension = ".mp4")
     {
-        var path = Path.Combine(folder, name + ".mp4");
+        var path = Path.Combine(folder, name + extension);
         for (var i = 2; File.Exists(path); i++)
-            path = Path.Combine(folder, $"{name}_{i}.mp4");
+            path = Path.Combine(folder, $"{name}_{i}{extension}");
         return path;
     }
 }

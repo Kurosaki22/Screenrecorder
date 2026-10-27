@@ -50,6 +50,7 @@ public static class Native
 
     [DllImport("user32.dll")] public static extern bool RegisterHotKey(IntPtr hWnd, int id, uint modifiers, uint vk);
     [DllImport("user32.dll")] public static extern bool UnregisterHotKey(IntPtr hWnd, int id);
+    [DllImport("user32.dll")] public static extern bool IsWindow(IntPtr hWnd);
     [DllImport("user32.dll")] static extern bool GetWindowRect(IntPtr hWnd, out RECT rect);
     [DllImport("user32.dll")] static extern bool SetWindowPos(IntPtr hWnd, IntPtr after, int x, int y, int cx, int cy, uint flags);
     [DllImport("user32.dll")] static extern bool GetCursorPos(out POINT p);

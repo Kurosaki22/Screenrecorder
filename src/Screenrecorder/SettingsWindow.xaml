@@ -55,6 +55,16 @@
                 <ComboBox x:Name="FpsBox" IsEditable="True" Width="140" HorizontalAlignment="Left" />
                 <TextBlock Text="{x:Static res:Strings.FpsHint}" Style="{StaticResource Hint}" Margin="0,6,0,0" />
                 <CheckBox x:Name="ShowCursorBox" Content="{x:Static res:Strings.ShowCursor}" Margin="0,28,0,0" />
+                <CheckBox x:Name="CountdownBox" Content="{x:Static res:Strings.Countdown}" Margin="0,8,0,0" />
+                <TextBlock Text="{x:Static res:Strings.AutoStop}" Style="{StaticResource Header}" Margin="0,28,0,8" />
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="{x:Static res:Strings.LimitMinutes}" Width="230" VerticalAlignment="Center" />
+                    <TextBox x:Name="LimitMinutesBox" Width="100" />
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                    <TextBlock Text="{x:Static res:Strings.LimitMb}" Width="230" VerticalAlignment="Center" />
+                    <TextBox x:Name="LimitMbBox" Width="100" />
+                </StackPanel>
             </StackPanel>
 
             <StackPanel Visibility="Collapsed">
@@ -68,6 +78,7 @@
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
                     <TextBlock Text="{x:Static res:Strings.HotkeyRecordLabel}" VerticalAlignment="Center" />
                     <TextBox x:Name="HotkeyRecordBox" Grid.Column="1" Margin="0,4" IsReadOnly="True" IsReadOnlyCaretVisible="False"
@@ -77,6 +88,9 @@
                              PreviewKeyDown="HotkeyBox_PreviewKeyDown" />
                     <TextBlock Grid.Row="2" Text="{x:Static res:Strings.HotkeySelectAreaLabel}" VerticalAlignment="Center" />
                     <TextBox x:Name="HotkeySelectAreaBox" Grid.Row="2" Grid.Column="1" Margin="0,4" IsReadOnly="True" IsReadOnlyCaretVisible="False"
+                             PreviewKeyDown="HotkeyBox_PreviewKeyDown" />
+                    <TextBlock Grid.Row="3" Text="{x:Static res:Strings.HotkeyScreenshotLabel}" VerticalAlignment="Center" />
+                    <TextBox x:Name="HotkeyScreenshotBox" Grid.Row="3" Grid.Column="1" Margin="0,4" IsReadOnly="True" IsReadOnlyCaretVisible="False"
                              PreviewKeyDown="HotkeyBox_PreviewKeyDown" />
                 </Grid>
                 <TextBlock Text="{x:Static res:Strings.HotkeyHelp}" Style="{StaticResource Hint}" Margin="0,16,0,0" />

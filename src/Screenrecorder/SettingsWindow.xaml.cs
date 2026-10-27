@@ -31,9 +31,13 @@ public partial class SettingsWindow : Window
         QualitySlider.Value = s.Quality;
         FpsBox.Text = s.Fps.ToString();
         ShowCursorBox.IsChecked = s.ShowCursor;
+        CountdownBox.IsChecked = s.Countdown;
+        LimitMinutesBox.Text = s.LimitMinutes.ToString();
+        LimitMbBox.Text = s.LimitMb.ToString();
         HotkeyRecordBox.Text = s.HotkeyRecord;
         HotkeyPauseBox.Text = s.HotkeyPause;
         HotkeySelectAreaBox.Text = s.HotkeySelectArea;
+        HotkeyScreenshotBox.Text = s.HotkeyScreenshot;
         OutputFolderBox.Text = s.OutputFolder;
         FileNameBox.Text = s.FileNamePattern;
         StartNumberBox.Text = s.NextNumber.ToString();
@@ -102,7 +106,7 @@ public partial class SettingsWindow : Window
 
     void Ok_Click(object sender, RoutedEventArgs e)
     {
-        var hotkeys = new[] { HotkeyRecordBox.Text, HotkeyPauseBox.Text, HotkeySelectAreaBox.Text };
+        var hotkeys = new[] { HotkeyRecordBox.Text, HotkeyPauseBox.Text, HotkeySelectAreaBox.Text, HotkeyScreenshotBox.Text };
         var duplicate = hotkeys.Where(h => h != "").GroupBy(h => h).FirstOrDefault(g => g.Count() > 1);
         if (duplicate is not null)
         {
@@ -112,6 +116,12 @@ public partial class SettingsWindow : Window
         if (!Settings.TryParseFps(FpsBox.Text, out var fps))
         {
             Fail(0, string.Format(Strings.InvalidFps, FpsBox.Text));
+            return;
+        }
+        if (!int.TryParse(LimitMinutesBox.Text, out var limitMinutes) || limitMinutes < 0
+            || !int.TryParse(LimitMbBox.Text, out var limitMb) || limitMb < 0)
+        {
+            Fail(0, Strings.InvalidLimit);
             return;
         }
         if (!int.TryParse(StartNumberBox.Text, out var number) || number < 0)
@@ -132,7 +142,9 @@ public partial class SettingsWindow : Window
         Result.Quality = (int)Math.Round(QualitySlider.Value);
         Result.Fps = fps;
         Result.ShowCursor = ShowCursorBox.IsChecked == true;
-        (Result.HotkeyRecord, Result.HotkeyPause, Result.HotkeySelectArea) = (hotkeys[0], hotkeys[1], hotkeys[2]);
+        Result.Countdown = CountdownBox.IsChecked == true;
+        (Result.LimitMinutes, Result.LimitMb) = (limitMinutes, limitMb);
+        (Result.HotkeyRecord, Result.HotkeyPause, Result.HotkeySelectArea, Result.HotkeyScreenshot) = (hotkeys[0], hotkeys[1], hotkeys[2], hotkeys[3]);
         Result.OutputFolder = OutputFolderBox.Text;
         Result.FileNamePattern = FileNameBox.Text.Trim() == "" ? FileNamer.DefaultPattern : FileNameBox.Text;
         Result.NextNumber = number;

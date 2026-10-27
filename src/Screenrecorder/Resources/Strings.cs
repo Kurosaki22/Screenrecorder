@@ -84,4 +84,23 @@ public static class Strings
     public static string Fps => Get();
     public static string FpsHint => Get();
     public static string InvalidFps => Get();
+    public static string Screenshot => Get();
+    public static string HotkeyScreenshotLabel => Get();
+    public static string RecordWindow => Get();
+    public static string WindowGone => Get();
+    public static string WaitingForWindow => Get();
+    public static string Countdown => Get();
+    public static string AutoStop => Get();
+    public static string LimitMinutes => Get();
+    public static string LimitMb => Get();
+    public static string InvalidLimit => Get();
+    public static string DiskLow => Get();
+    public static string DiskCritical => Get();
+    public static string StoppedDiskFull => Get();
+    public static string StoppedLimit => Get();
+    public static string RecordingSaved => Get();
+    public static string ScreenshotSaved => Get();
+    public static string ShowWindow => Get();
+    public static string Exit => Get();
+    public static string NoData => Get();
 }

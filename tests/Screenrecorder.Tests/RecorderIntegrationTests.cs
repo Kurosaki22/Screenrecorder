@@ -128,6 +128,87 @@ public class RecorderIntegrationTests(ITestOutputHelper log)
         }
     }
 
+    [Fact]
+    public async Task Recording_stays_readable_when_ffmpeg_is_killed_mid_way()
+    {
+        var ffmpeg = Recorder.FindFfmpeg();
+        var displays = Displays.Enumerate();
+        if (ffmpeg is null || displays.Count == 0) return;
+
+        var output = TempFile();
+        try
+        {
+            // ddagrab repeats frames on an idle screen, so this checks the file format, independent of desktop activity.
+            var area = new CaptureArea(Grabber.DesktopDuplication, new PixelRect(0, 0, 640, 360), displays[0].OutputIndex);
+            var options = new RecordOptions(area, Encoder, 30, 80, ShowCursor: true, SystemAudio: false, Microphone: false);
+            var psi = new ProcessStartInfo(ffmpeg) { RedirectStandardOutput = true, CreateNoWindow = true };
+            foreach (var arg in FfmpegArgs.Build(options, [], output)) psi.ArgumentList.Add(arg);
+            using var p = Process.Start(psi)!;
+            _ = p.StandardOutput.ReadToEndAsync(); // drain -progress
+            await Task.Delay(TimeSpan.FromSeconds(4));
+            p.Kill(); // like a crash: no chance to write a final index
+
+            var duration = double.Parse(Run("ffprobe", $"-v error -show_entries format=duration -of csv=p=0 \"{output}\"").stdout.Trim(),
+                CultureInfo.InvariantCulture);
+            log.WriteLine($"readable after kill: {duration:0.00} s");
+            Assert.InRange(duration, 1.0, 5.0);
+        }
+        finally
+        {
+            File.Delete(output);
+        }
+    }
+
+    [Fact]
+    public async Task Window_capture_records_the_window_and_stop_never_hangs_on_a_static_one()
+    {
+        var ffmpeg = Recorder.FindFfmpeg();
+        if (ffmpeg is null) return;
+        // Animated window: frames flow, video has the window's (even) client size.
+        using (var window = new TestForm(() =>
+        {
+            var f = new Form { StartPosition = FormStartPosition.Manual, Bounds = new Rectangle(300, 300, 401, 301), BackColor = Color.SteelBlue };
+            var t = new System.Windows.Forms.Timer { Interval = 30, Enabled = true };
+            t.Tick += (_, _) => f.BackColor = f.BackColor.B == 180 ? Color.FromArgb(70, 130, 181) : Color.SteelBlue;
+            f.FormClosed += (_, _) => t.Dispose();
+            return f;
+        }))
+        {
+            var (hwnd, client) = window.Invoke(f => (f.Handle, f.ClientSize));
+            var output = TempFile();
+            try
+            {
+                var rec = Recorder.Start(ffmpeg, WindowOptions(hwnd), output);
+                await Task.Delay(TimeSpan.FromSeconds(2.5));
+                Assert.True(rec.HasStarted);
+                await rec.StopAsync();
+                var size = Run("ffprobe", $"-v error -select_streams v -show_entries stream=width,height -of csv=p=0 \"{output}\"").stdout.Trim();
+                log.WriteLine($"window client {client.Width}x{client.Height}, video {size}");
+                Assert.Equal($"{client.Width & ~1},{client.Height & ~1}", size);
+            }
+            finally
+            {
+                File.Delete(output);
+            }
+        }
+
+        // Static window: Windows Graphics Capture delivers no frame, ffmpeg waits; stopping must still be immediate.
+        using (var still = new TestForm(() => new Form { StartPosition = FormStartPosition.Manual, Bounds = new Rectangle(300, 300, 401, 301) }))
+        {
+            var output = TempFile();
+            var rec = Recorder.Start(ffmpeg, WindowOptions(still.Invoke(f => f.Handle)), output);
+            await Task.Delay(TimeSpan.FromSeconds(1.5));
+            Assert.False(rec.HasStarted);
+            var watch = Stopwatch.StartNew();
+            await rec.StopAsync();
+            Assert.True(watch.Elapsed < TimeSpan.FromSeconds(3), $"stop took {watch.Elapsed}");
+            Assert.False(File.Exists(output));
+        }
+    }
+
+    static RecordOptions WindowOptions(IntPtr hwnd) =>
+        new(new CaptureArea(Grabber.GraphicsCapture, default, Window: hwnd), Encoder, 30, 80, ShowCursor: false, SystemAudio: false, Microphone: false);
+
     static RecordOptions Options(IReadOnlyList<Display> displays, PixelRect rect) =>
         new(Displays.Locate(rect, displays, Native.Monitors()), Encoder, 30, 80, ShowCursor: true, SystemAudio: true, Microphone: false);
 
@@ -216,6 +297,9 @@ class TestForm : IDisposable
         Control? marshal = null;
         var thread = new Thread(() =>
         {
+            // Per thread, because the process-wide SetHighDpiMode is ignored once anything (e.g. an earlier unit
+            // test) has touched DPI; physical pixels are what the app's own code works with.
+            SetThreadDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
             Application.SetHighDpiMode(HighDpiMode.PerMonitorV2);
             marshal = new Control();
             marshal.CreateControl(); // gives Invoke a window handle on this thread
@@ -236,15 +320,61 @@ class TestForm : IDisposable
         {
             var f = create();
             f.Show();
+            // Windows drops WS_EX_TOPMOST set at creation when a background process opens the window (e.g. while the
+            // user works in another app); setting it again afterwards sticks.
+            if (f.TopMost) SetWindowPos(f.Handle, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE | SWP_NOACTIVATE);
             f.Refresh();
             return f;
         });
     }
 
+    static readonly IntPtr HWND_TOPMOST = -1, DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2 = -4;
+    const uint SWP_NOSIZE = 0x1, SWP_NOMOVE = 0x2, SWP_NOACTIVATE = 0x10;
+
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    static extern IntPtr SetThreadDpiAwarenessContext(IntPtr context);
+
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    static extern bool SetWindowPos(IntPtr hwnd, IntPtr after, int x, int y, int cx, int cy, uint flags);
+
     public T Invoke<T>(Func<Form, T> action) => Ui.Value.Invoke(() => action(form));
     public void Invoke(Action<Form> action) => Ui.Value.Invoke(() => action(form));
 
     public void Dispose() => Ui.Value.Invoke(form.Close);
+}
+
+[Trait("Category", "Integration")]
+[Collection("Desktop")] // these tests put windows on the real screen; run them one after another
+public class ScreenCaptureTests
+{
+    [Fact]
+    public void Screenshot_contains_what_is_on_screen_and_saves_as_png()
+    {
+        using var window = new TestForm(() => new Form
+        {
+            FormBorderStyle = FormBorderStyle.None, TopMost = true, ShowInTaskbar = false,
+            StartPosition = FormStartPosition.Manual, Bounds = new Rectangle(0, 0, 300, 200), BackColor = Color.Red,
+        });
+        Thread.Sleep(500);
+        var image = ScreenCapture.Grab(new PixelRect(20, 20, 200, 100));
+        Assert.Equal((200, 100), (image.PixelWidth, image.PixelHeight));
+
+        var pixels = new byte[200 * 100 * 4]; // BGRA
+        image.CopyPixels(pixels, 200 * 4, 0);
+        Assert.True(pixels[2] > 200 && pixels[1] < 60 && pixels[0] < 60, $"top-left pixel is not red: {pixels[2]},{pixels[1]},{pixels[0]}");
+
+        var path = Path.Combine(Path.GetTempPath(), $"screenrecorder-test-{Guid.NewGuid():N}.png");
+        try
+        {
+            ScreenCapture.SavePng(image, path);
+            using var file = File.OpenRead(path);
+            Assert.Equal(200, System.Windows.Media.Imaging.BitmapDecoder.Create(file, default, default).Frames[0].PixelWidth);
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
 }
 
 [Trait("Category", "Integration")]

@@ -14,8 +14,15 @@ public sealed class Recorder
     readonly Queue<string> errorTail = new();
     bool stopping;
     long bytesWritten;
+    int started;
 
     public string OutputPath { get; }
+
+    /// <summary>
+    /// ffmpeg reports progress only once its inputs are open, i.e. after the first captured frame. Windows Graphics
+    /// Capture delivers none until the captured window changes, so a fresh window capture can sit here for a while.
+    /// </summary>
+    public bool HasStarted => Volatile.Read(ref started) == 1;
 
     /// <summary>Output size so far as reported by ffmpeg (FileInfo.Length lags while ffmpeg holds the file open).</summary>
     public long BytesWritten => Interlocked.Read(ref bytesWritten);
@@ -71,7 +78,9 @@ public sealed class Recorder
         };
         p.OutputDataReceived += (_, e) =>
         {
-            if (e.Data is not null && ParseTotalSize(e.Data) is long size) Interlocked.Exchange(ref rec.bytesWritten, size);
+            if (e.Data is null) return;
+            Volatile.Write(ref rec.started, 1);
+            if (ParseTotalSize(e.Data) is long size) Interlocked.Exchange(ref rec.bytesWritten, size);
         };
         p.Exited += (_, _) =>
         {
@@ -102,6 +111,13 @@ public sealed class Recorder
     public async Task StopAsync()
     {
         stopping = true;
+        if (!HasStarted && !ffmpeg.HasExited)
+        {
+            // Still waiting for the first frame: ffmpeg can't read 'q' yet and there is nothing to keep.
+            ffmpeg.Kill();
+            await ffmpeg.WaitForExitAsync();
+            File.Delete(OutputPath);
+        }
         if (!ffmpeg.HasExited)
         {
             try

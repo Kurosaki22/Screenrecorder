@@ -130,6 +130,7 @@ public class FileNamerTests
             File.WriteAllText(Path.Combine(dir, "x.mp4"), "");
             File.WriteAllText(Path.Combine(dir, "x_2.mp4"), "");
             Assert.Equal(Path.Combine(dir, "x_3.mp4"), FileNamer.Unique(dir, "x"));
+            Assert.Equal(Path.Combine(dir, "x.png"), FileNamer.Unique(dir, "x", ".png")); // screenshots don't collide with videos
         }
         finally
         {
@@ -215,6 +216,21 @@ public class MiniBarPlacementTests
         var left = new PixelRect(-1920, 0, 1920, 1032);
         Assert.Equal((-1800, 506), MiniBarPlacement.Place(new PixelRect(-1800, 100, 800, 400), W, H, left, Gap));
     }
+}
+
+public class DiskSpaceTests
+{
+    [Theory]
+    [InlineData(10L << 30, DiskState.Ok)]
+    [InlineData(2L << 30, DiskState.Ok)]
+    [InlineData((2L << 30) - 1, DiskState.Low)]
+    [InlineData(500L << 20, DiskState.Low)]
+    [InlineData((500L << 20) - 1, DiskState.Critical)]
+    [InlineData(0, DiskState.Critical)]
+    public void Classifies_free_space(long free, DiskState expected) => Assert.Equal(expected, DiskSpace.Status(free));
+
+    [Fact]
+    public void Unknown_drives_count_as_plenty() => Assert.Equal(long.MaxValue, DiskSpace.FreeBytes(@"\\no-such-server\share"));
 }
 
 public class PixelRectTests

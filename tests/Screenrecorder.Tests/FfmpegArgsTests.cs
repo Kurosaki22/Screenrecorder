@@ -28,6 +28,24 @@ public class FfmpegArgsTests
     }
 
     [Fact]
+    public void Window_capture_follows_the_window_handle_with_even_size()
+    {
+        var area = new CaptureArea(Grabber.GraphicsCapture, new PixelRect(10, 10, 800, 600), Window: 0x1234);
+        var line = Line(FfmpegArgs.Build(Options(area, Nvenc, fps: 30), [], "o.mp4"));
+        Assert.Contains("gfxcapture=hwnd=4660:max_framerate=240:capture_cursor=1:width=-2:height=-2", line);
+        Assert.DoesNotContain("hmonitor", line);
+        Assert.Contains("-vf fps=30 ", line);
+    }
+
+    [Fact]
+    public void Output_survives_a_crash_and_has_a_keyframe_every_two_seconds()
+    {
+        var args = FfmpegArgs.Build(Options(Small, Nvenc, fps: 60), [], "o.mp4");
+        Assert.Contains("-flush_packets 1 -movflags +frag_keyframe+empty_moov+default_base_moof o.mp4", Line(args));
+        Assert.Contains("-g 120", Line(args));
+    }
+
+    [Fact]
     public void Graphics_capture_downloads_frames_for_cpu_side_encoders()
     {
         Assert.Contains("-vf fps=24,hwdownload,format=bgra ", Line(FfmpegArgs.Build(Options(Gfx, Mf, fps: 24), [], "o.mp4")));

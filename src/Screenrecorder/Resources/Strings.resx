@@ -78,4 +78,23 @@
   <data name="Fps" xml:space="preserve"><value>Frame rate (fps)</value></data>
   <data name="FpsHint" xml:space="preserve"><value>Pick a value or type any whole number from 1 to 240. More fps look smoother but make larger files; more than your monitor's refresh rate adds nothing.</value></data>
   <data name="InvalidFps" xml:space="preserve"><value>Invalid frame rate: {0}. Please enter a whole number from 1 to 240.</value></data>
+  <data name="Screenshot" xml:space="preserve"><value>Screenshot</value></data>
+  <data name="HotkeyScreenshotLabel" xml:space="preserve"><value>Take screenshot</value></data>
+  <data name="RecordWindow" xml:space="preserve"><value>Record a window…</value></data>
+  <data name="WindowGone" xml:space="preserve"><value>The selected window no longer exists. Please choose it again via Area › Record a window.</value></data>
+  <data name="WaitingForWindow" xml:space="preserve"><value>Waiting for a picture – move the mouse over the window</value></data>
+  <data name="Countdown" xml:space="preserve"><value>Countdown before recording (3 s)</value></data>
+  <data name="AutoStop" xml:space="preserve"><value>Stop automatically</value></data>
+  <data name="LimitMinutes" xml:space="preserve"><value>after minutes (0 = off):</value></data>
+  <data name="LimitMb" xml:space="preserve"><value>at file size in MB (0 = off):</value></data>
+  <data name="InvalidLimit" xml:space="preserve"><value>Limits must be whole numbers of 0 or more.</value></data>
+  <data name="DiskLow" xml:space="preserve"><value>Only {0} left on the target drive. Record anyway?</value></data>
+  <data name="DiskCritical" xml:space="preserve"><value>Not enough free space on the target drive ({0} left).</value></data>
+  <data name="StoppedDiskFull" xml:space="preserve"><value>Recording stopped: the drive is almost full</value></data>
+  <data name="StoppedLimit" xml:space="preserve"><value>Recording stopped: limit reached</value></data>
+  <data name="RecordingSaved" xml:space="preserve"><value>Recording saved</value></data>
+  <data name="ScreenshotSaved" xml:space="preserve"><value>Screenshot saved and copied to the clipboard</value></data>
+  <data name="ShowWindow" xml:space="preserve"><value>Show window</value></data>
+  <data name="Exit" xml:space="preserve"><value>Exit</value></data>
+  <data name="NoData" xml:space="preserve"><value>Nothing was recorded.</value></data>
 </root>

@@ -18,6 +18,7 @@ public sealed class RecordingSession
 
     public string OutputPath { get; }
     public bool IsPaused => current is null;
+    public bool IsWaitingForFirstFrame => current is { HasStarted: false };
     public TimeSpan Elapsed => clock.Elapsed;
     public long BytesWritten => finishedBytes + (current?.BytesWritten ?? 0);
 
@@ -68,7 +69,7 @@ public sealed class RecordingSession
     {
         await PauseAsync();
         var existing = parts.Where(File.Exists).ToList();
-        if (existing.Count == 0) return "No data was recorded.";
+        if (existing.Count == 0) return Resources.Strings.NoData;
         if (existing.Count == 1)
         {
             File.Move(existing[0], OutputPath, overwrite: true);

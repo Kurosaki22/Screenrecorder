@@ -55,6 +55,13 @@
                 <TextBlock x:Name="PauseHotkey" Style="{StaticResource HotkeyHint}" />
             </StackPanel>
         </Button>
+        <Button x:Name="ScreenshotButton" Style="{StaticResource ToolButton}" Click="Screenshot_Click">
+            <StackPanel>
+                <TextBlock Style="{StaticResource Glyph}" Text="&#xE722;" />
+                <TextBlock Text="{x:Static res:Strings.Screenshot}" Style="{StaticResource Label}" />
+                <TextBlock x:Name="ScreenshotHotkey" Style="{StaticResource HotkeyHint}" />
+            </StackPanel>
+        </Button>
         <Button x:Name="AreaButton" Style="{StaticResource ToolButton}" Click="Area_Click">
             <StackPanel>
                 <TextBlock Style="{StaticResource Glyph}" Text="&#xE7A8;" />

@@ -20,12 +20,19 @@ public static class FfmpegArgs
         switch (o.Area.Grabber)
         {
             case Grabber.GraphicsCapture:
-                var m = o.Area.Monitor!.Bounds;
                 // Sample at up to 240 Hz with real timestamps, then pick evenly spaced frames: measured on a 240 Hz
                 // screen this halves motion judder compared to ddagrab at the target rate and never drops a frame.
-                a.AddRange(["-f", "lavfi", "-i",
-                    $"gfxcapture=hmonitor={o.Area.Monitor.Handle}:max_framerate={Math.Max(240, o.Fps)}:capture_cursor={mouse}" +
-                    $":crop_left={r.X}:crop_top={r.Y}:crop_right={m.Width - r.Right}:crop_bottom={m.Height - r.Bottom}"]);
+                var common = $"max_framerate={Math.Max(240, o.Fps)}:capture_cursor={mouse}";
+                if (o.Area.Window != 0)
+                    // width/height -2: round the window size down to even, as yuv420 encoders need
+                    a.AddRange(["-f", "lavfi", "-i", $"gfxcapture=hwnd={o.Area.Window}:{common}:width=-2:height=-2"]);
+                else
+                {
+                    var m = o.Area.Monitor!.Bounds;
+                    a.AddRange(["-f", "lavfi", "-i",
+                        $"gfxcapture=hmonitor={o.Area.Monitor.Handle}:{common}" +
+                        $":crop_left={r.X}:crop_top={r.Y}:crop_right={m.Width - r.Right}:crop_bottom={m.Height - r.Bottom}"]);
+                }
                 filters.Add($"fps={o.Fps}");
                 break;
             case Grabber.DesktopDuplication:
@@ -57,11 +64,16 @@ public static class FfmpegArgs
         if (filters.Count > 0)
             a.AddRange(["-vf", string.Join(",", filters)]);
 
-        a.AddRange(["-c:v", o.Encoder.Name, .. o.Encoder.QualityArgs(o.Quality)]);
+        // Keyframe every 2 s: bounds what a crash can cost (see movflags) and keeps seeking quick.
+        a.AddRange(["-c:v", o.Encoder.Name, .. o.Encoder.QualityArgs(o.Quality), "-g", $"{2 * o.Fps}"]);
         // Opus: royalty-free; -ac 2 downmixes 5.1/7.1 loopback devices.
         if (audio.Count > 0)
             a.AddRange(["-c:a", "libopus", "-b:a", "160k", "-ar", "48000", "-ac", "2"]);
 
+        // Fragmented MP4: playable up to the last fragment even if the app or PC crashes mid-recording
+        // (a plain MP4 writes its index only at the end and is unreadable without it). flush_packets: a calm
+        // screen makes fragments smaller than ffmpeg's 32 KB write buffer, which a crash would otherwise lose.
+        a.AddRange(["-flush_packets", "1", "-movflags", "+frag_keyframe+empty_moov+default_base_moof"]);
         a.Add(outputPath);
         return a;
     }

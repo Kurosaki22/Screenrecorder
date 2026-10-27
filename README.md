@@ -9,6 +9,15 @@ frei definierbarem Aufnahmebereich und Systemsound + Mikrofon.
   Hauptbildschirm, zweiter Bildschirm, ganzer Desktop
 - **Bereich auswählen** schlägt beim Überfahren das Fenster bzw. den Fensterteil unter der Maus vor (z. B. die
   Webseitenfläche im Browser); Klick übernimmt, Ziehen zeichnet frei
+- **Fenster aufnehmen** (Bereich-Menü): nimmt ein bestimmtes Fenster auf, auch wenn es verschoben oder verdeckt wird.
+  Windows liefert das erste Bild erst, wenn sich im Fenster etwas tut; bis dahin zeigt die Steuerleiste
+  „Warte auf Bild – Maus über das Fenster bewegen“.
+- **Screenshot** (Button „Bild“, **F8**): PNG in den Ausgabeordner und in die Zwischenablage
+- **Absturzsicher**: Die MP4 wird fortlaufend in Stücken geschrieben; stürzt App oder PC ab, bleibt alles bis auf die
+  letzten ~2 s abspielbar. Vor und während der Aufnahme wird der freie Speicherplatz geprüft.
+- **Countdown** 3-2-1 vor dem Start (optional, Einstellungen), **automatischer Stopp** nach X Minuten oder X MB
+- **Infobereich-Symbol** mit Menü und Windows-Benachrichtigung nach jeder Aufnahme/jedem Screenshot (Klick öffnet
+  den Ordner mit markierter Datei). Wird das Fenster ohne laufende Aufnahme minimiert, verschwindet auch der Rahmen.
 - **Während der Aufnahme**: Laufzeit und aktuelle Dateigröße im Fenster und in der Titelleiste. Eine kleine
   Steuerleiste (Zeit, Größe, Pause/Fortsetzen, Stopp) sitzt unten links am Rahmen, oben links wenn unten kein Platz ist;
   sie wird nie mitaufgenommen. Der Rahmen ist rot bei Aufnahme und orange bei Pause.
@@ -17,7 +26,7 @@ frei definierbarem Aufnahmebereich und Systemsound + Mikrofon.
 - **Ton**: Systemsound (WASAPI Loopback) und Mikrofon, gemischt, als Opus
 - **Pause**: Aufnahme pausieren und fortsetzen; am Ende entsteht eine einzige Datei
 - **Hotkeys** (global, in den Einstellungen änderbar): **F2** Aufnahme starten/stoppen, **F3** Pause/Fortsetzen,
-  **F4** Bereich auswählen; der aktuelle Hotkey steht unter dem jeweiligen Button
+  **F4** Bereich auswählen, **F8** Screenshot; der aktuelle Hotkey steht unter dem jeweiligen Button
 - **Einstellungen**: Qualitätsregler (kleinere Datei ↔ bessere Qualität), Bildrate (Vorschläge 24–240 fps oder
   eigener Wert 1–240), Mauszeiger an/aus, Hotkeys,
   Ausgabepfad und Dateiname mit Platzhaltern (`<YYYY> <MM> <DD> <HH> <NN> <SS> <Z> <Nr>`), Sprache (Deutsch/Englisch),

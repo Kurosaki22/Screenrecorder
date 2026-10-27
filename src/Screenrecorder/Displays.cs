@@ -40,8 +40,9 @@ public enum Grabber
 /// <summary>
 /// What to grab. Rect is relative to the monitor for GraphicsCapture/DesktopDuplication and absolute
 /// (virtual desktop) for Gdi. OutputIndex is ddagrab's output_idx, Monitor is set for GraphicsCapture.
+/// Window (an HWND) makes GraphicsCapture follow that window instead of a monitor area.
 /// </summary>
-public readonly record struct CaptureArea(Grabber Grabber, PixelRect Rect, int OutputIndex = 0, MonitorInfo? Monitor = null);
+public readonly record struct CaptureArea(Grabber Grabber, PixelRect Rect, int OutputIndex = 0, MonitorInfo? Monitor = null, long Window = 0);
 
 public static class Displays
 {

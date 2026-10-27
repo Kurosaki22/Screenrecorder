@@ -7,12 +7,13 @@ using System.Windows.Controls.Primitives;
 using System.Windows.Interop;
 using System.Windows.Threading;
 using Screenrecorder.Resources;
+using Forms = System.Windows.Forms;
 
 namespace Screenrecorder;
 
 public partial class MainWindow : Window
 {
-    const int HotkeyRecordId = 1, HotkeyPauseId = 2, HotkeySelectAreaId = 3;
+    const int HotkeyRecordId = 1, HotkeyPauseId = 2, HotkeySelectAreaId = 3, HotkeyScreenshotId = 4;
     static readonly string[] Presets16x9 = ["640x360", "800x450", "1024x576"];
     static readonly string[] Presets4x3 = ["640x480", "800x600", "1024x768"];
     static readonly string[] PresetsYoutube = ["1280x720", "1920x1080"];
@@ -26,6 +27,10 @@ public partial class MainWindow : Window
     bool graphicsCapture; // gfxcapture usable: smoother than ddagrab and works on every GPU's monitor
     RecordingSession? session;
     bool busy, minimizedForRecording;
+    long captureWindow; // HWND for AreaMode.Window; only valid for this run of the app
+    CancellationTokenSource? countdown;
+    Forms.NotifyIcon? tray;
+    string? lastSaved, stopReason;
 
     public MainWindow(Settings settings)
     {
@@ -33,6 +38,13 @@ public partial class MainWindow : Window
         InitializeComponent();
         statusTimer.Tick += (_, _) => UpdateStatus();
         Loaded += OnLoaded;
+        // Idle and minimized: the frame would otherwise float alone on the desktop.
+        StateChanged += (_, _) =>
+        {
+            if (session is not null) return;
+            if (WindowState == WindowState.Minimized) frame.Hide();
+            else ApplyAreaMode();
+        };
     }
 
     IntPtr Hwnd => new WindowInteropHelper(this).Handle;
@@ -43,9 +55,11 @@ public partial class MainWindow : Window
         // minimizes itself when it overlaps the recorded area. App.xaml's ShutdownMode closes them with the main window.
         frame.Show();
         frame.Region = OnScreen(settings.Region);
+        if (settings.Area == AreaMode.Window) settings.Area = AreaMode.Region; // the window handle doesn't survive a restart
         ApplyAreaMode();
         miniBar.PauseClicked += TogglePause;
         miniBar.StopClicked += ToggleRecording;
+        CreateTray();
 
         HwndSource.FromHwnd(Hwnd).AddHook(WndProc);
         RegisterHotkeys();
@@ -85,6 +99,7 @@ public partial class MainWindow : Window
             (HotkeyRecordId, settings.HotkeyRecord, RecordHotkey),
             (HotkeyPauseId, settings.HotkeyPause, PauseHotkey),
             (HotkeySelectAreaId, settings.HotkeySelectArea, AreaHotkey),
+            (HotkeyScreenshotId, settings.HotkeyScreenshot, ScreenshotHotkey),
         })
         {
             hint.Text = "";
@@ -108,6 +123,7 @@ public partial class MainWindow : Window
             case HotkeyRecordId when RecordButton.IsEnabled: ToggleRecording(); break;
             case HotkeyPauseId when session is not null: TogglePause(); break;
             case HotkeySelectAreaId when session is null && IsEnabled: SelectArea(); break;
+            case HotkeyScreenshotId: TakeScreenshot(); break;
             default: return IntPtr.Zero;
         }
         handled = true;
@@ -133,6 +149,11 @@ public partial class MainWindow : Window
 
     async void ToggleRecording()
     {
+        if (countdown is not null)
+        {
+            countdown.Cancel(); // pressing Record again during 3-2-1 aborts the start
+            return;
+        }
         if (busy || ffmpeg is null || encoders is null) return;
         busy = true;
         try
@@ -140,7 +161,7 @@ public partial class MainWindow : Window
             if (session is not null)
                 await StopRecording();
             else
-                StartRecording();
+                await StartRecording();
         }
         finally
         {
@@ -170,28 +191,55 @@ public partial class MainWindow : Window
         }
     }
 
-    void StartRecording()
+    /// <summary>The area the current mode records, in physical pixels; null (after telling the user) if it is gone.</summary>
+    PixelRect? CurrentArea(IReadOnlyList<Display> displays)
     {
-        var displays = Displays.Enumerate();
         var primary = displays.FirstOrDefault(d => d.IsPrimary) ?? displays[0];
-        PixelRect rect;
         switch (settings.Area)
         {
-            case AreaMode.PrimaryScreen: rect = primary.Bounds; break;
+            case AreaMode.PrimaryScreen: return primary.Bounds;
             case AreaMode.SecondaryScreen:
-                var second = displays.FirstOrDefault(d => !d.IsPrimary);
-                if (second is null)
-                {
-                    MessageBox.Show(this, Strings.NoSecondScreen, Title);
-                    return;
-                }
-                rect = second.Bounds;
-                break;
-            case AreaMode.AllScreens: rect = Displays.VirtualDesktop(displays); break;
-            default: rect = frame.Region; break;
+                if (displays.FirstOrDefault(d => !d.IsPrimary) is Display second) return second.Bounds;
+                MessageBox.Show(this, Strings.NoSecondScreen, Title);
+                return null;
+            case AreaMode.AllScreens: return Displays.VirtualDesktop(displays);
+            case AreaMode.Window:
+                if (Native.IsWindow((IntPtr)captureWindow)) return WindowPicker.Bounds(captureWindow);
+                MessageBox.Show(this, Strings.WindowGone, Title);
+                SetArea(AreaMode.Region);
+                return null;
+            default: return frame.Region;
+        }
+    }
+
+    async Task StartRecording()
+    {
+        var free = DiskSpace.FreeBytes(settings.OutputFolder);
+        switch (DiskSpace.Status(free))
+        {
+            case DiskState.Critical:
+                MessageBox.Show(this, string.Format(Strings.DiskCritical, DiskSpace.Format(free)), Title, MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            case DiskState.Low when MessageBox.Show(this, string.Format(Strings.DiskLow, DiskSpace.Format(free)), Title,
+                MessageBoxButton.YesNo, MessageBoxImage.Warning) != MessageBoxResult.Yes:
+                return;
         }
 
-        var area = Displays.Locate(rect, displays, graphicsCapture ? Native.Monitors() : null);
+        ApplyAreaMode(); // the frame is hidden while the idle app is minimized
+        var displays = Displays.Enumerate();
+        if (CurrentArea(displays) is not PixelRect rect) return;
+
+        if (settings.Countdown)
+        {
+            countdown = new CancellationTokenSource();
+            var go = await CountdownWindow.RunAsync(rect, countdown.Token);
+            countdown = null;
+            if (!go) return;
+        }
+
+        var area = settings.Area == AreaMode.Window
+            ? new CaptureArea(Grabber.GraphicsCapture, rect, Window: captureWindow)
+            : Displays.Locate(rect, displays, graphicsCapture ? Native.Monitors() : null);
         var options = new RecordOptions(area, encoders!.First(x => x.Name == settings.Encoder),
             settings.Fps, settings.Quality, settings.ShowCursor, settings.SystemAudio, settings.Microphone);
         try
@@ -232,7 +280,11 @@ public partial class MainWindow : Window
         var s = session!;
         session = null;
         SetRecordingUi(false);
-        if (await s.StopAsync() is string error) ShowFailure(error);
+        if (await s.StopAsync() is string error)
+            ShowFailure(error);
+        else
+            Notify(stopReason ?? Strings.RecordingSaved, s.OutputPath);
+        stopReason = null;
     }
 
     void ShowFailure(string details) =>
@@ -264,6 +316,8 @@ public partial class MainWindow : Window
                 WindowState = WindowState.Normal;
                 Activate();
             }
+            if (WindowState == WindowState.Minimized) frame.Hide(); // minimized by the user: back to idle rules
+            if (tray is not null) tray.Text = "Screenrecorder";
         }
     }
 
@@ -279,15 +333,94 @@ public partial class MainWindow : Window
     void UpdateStatus()
     {
         if (session is null) return;
+        if (!busy && !session.IsPaused && LimitReached() is string reason)
+        {
+            stopReason = reason;
+            ToggleRecording();
+            return;
+        }
         var mb = session.BytesWritten / (1024.0 * 1024.0);
         var (dot, label) = session.IsPaused ? ("⏸ ", Strings.Paused) : ("● ", Strings.Recording);
-        var text = $"{label} {session.Elapsed:hh\\:mm\\:ss} · {mb:0.0} MB";
+        var text = session.IsWaitingForFirstFrame && session.Elapsed > TimeSpan.FromSeconds(1)
+            ? Strings.WaitingForWindow
+            : $"{label} {session.Elapsed:hh\\:mm\\:ss} · {mb:0.0} MB";
         Title = dot + text;
+        if (tray is not null) tray.Text = (dot + text)[..Math.Min(127, dot.Length + text.Length)]; // NotifyIcon allows 127 chars
         miniBar.Update(text, session.IsPaused,
             WithHotkey(session.IsPaused ? Strings.Resume : Strings.Pause, PauseHotkey.Text), WithHotkey(Strings.Stop, RecordHotkey.Text));
     }
 
     static string WithHotkey(string label, string hotkey) => hotkey == "" ? label : $"{label} ({hotkey})";
+
+    /// <summary>Why the running recording must stop now: drive nearly full, or a time/size limit reached.</summary>
+    string? LimitReached()
+    {
+        if (DiskSpace.Status(DiskSpace.FreeBytes(settings.OutputFolder)) == DiskState.Critical) return Strings.StoppedDiskFull;
+        if (settings.LimitMinutes > 0 && session!.Elapsed.TotalMinutes >= settings.LimitMinutes) return Strings.StoppedLimit;
+        if (settings.LimitMb > 0 && session!.BytesWritten >= settings.LimitMb * 1024L * 1024) return Strings.StoppedLimit;
+        return null;
+    }
+
+    // ---------- Screenshot, tray, notifications ----------
+
+    void Screenshot_Click(object sender, RoutedEventArgs e) => TakeScreenshot();
+
+    void TakeScreenshot()
+    {
+        if (CurrentArea(Displays.Enumerate()) is not PixelRect rect) return;
+        try
+        {
+            var image = ScreenCapture.Grab(rect);
+            Directory.CreateDirectory(settings.OutputFolder);
+            var path = FileNamer.Unique(settings.OutputFolder,
+                FileNamer.Format(settings.FileNamePattern, DateTime.Now, settings.NextNumber), ".png");
+            ScreenCapture.SavePng(image, path);
+            settings.NextNumber++;
+            Clipboard.SetImage(image);
+            Notify(Strings.ScreenshotSaved, path);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Runtime.InteropServices.COMException)
+        {
+            ShowFailure(ex.Message);
+        }
+    }
+
+    void CreateTray()
+    {
+        tray = new Forms.NotifyIcon
+        {
+            Icon = System.Drawing.Icon.ExtractAssociatedIcon(Environment.ProcessPath!),
+            Text = "Screenrecorder",
+            ContextMenuStrip = new Forms.ContextMenuStrip(),
+            Visible = true,
+        };
+        var menu = tray.ContextMenuStrip;
+        var record = menu.Items.Add(Strings.Record, null, (_, _) => ToggleRecording());
+        menu.Items.Add(Strings.Screenshot, null, (_, _) => TakeScreenshot());
+        menu.Items.Add(Strings.Open, null, (_, _) => Open_Click(this, new RoutedEventArgs()));
+        menu.Items.Add(Strings.ShowWindow, null, (_, _) => ShowMainWindow());
+        menu.Items.Add(new Forms.ToolStripSeparator());
+        menu.Items.Add(Strings.Exit, null, (_, _) => Close());
+        menu.Opening += (_, _) => record.Text = session is null ? Strings.Record : Strings.Stop;
+        tray.DoubleClick += (_, _) => ShowMainWindow();
+        tray.BalloonTipClicked += (_, _) =>
+        {
+            if (lastSaved is not null && File.Exists(lastSaved)) Process.Start("explorer.exe", $"/select,\"{lastSaved}\"");
+        };
+    }
+
+    void ShowMainWindow()
+    {
+        if (WindowState == WindowState.Minimized) WindowState = WindowState.Normal;
+        Activate();
+    }
+
+    /// <summary>Windows notification for a saved file; clicking it shows the file in Explorer.</summary>
+    void Notify(string title, string path)
+    {
+        lastSaved = path;
+        tray?.ShowBalloonTip(4000, title, Path.GetFileName(path), Forms.ToolTipIcon.Info);
+    }
 
     protected override async void OnClosing(CancelEventArgs e)
     {
@@ -302,11 +435,12 @@ public partial class MainWindow : Window
         settings.Region = frame.Region;
         settings.Save();
         UnregisterHotkeys();
+        tray?.Dispose(); // otherwise the icon lingers in the tray until the mouse passes over it
     }
 
     void UnregisterHotkeys()
     {
-        foreach (var id in new[] { HotkeyRecordId, HotkeyPauseId, HotkeySelectAreaId })
+        foreach (var id in new[] { HotkeyRecordId, HotkeyPauseId, HotkeySelectAreaId, HotkeyScreenshotId })
             Native.UnregisterHotKey(Hwnd, id);
     }
 
@@ -348,6 +482,8 @@ public partial class MainWindow : Window
         items.Add(Item(Strings.AllScreens, () => SetArea(AreaMode.AllScreens), settings.Area == AreaMode.AllScreens));
         items.Add(Item(Strings.PrimaryScreen, () => SetArea(AreaMode.PrimaryScreen), settings.Area == AreaMode.PrimaryScreen));
         items.Add(Item(Strings.SecondaryScreen, () => SetArea(AreaMode.SecondaryScreen), settings.Area == AreaMode.SecondaryScreen));
+        // Window capture needs gfxcapture (Windows Graphics Capture follows a window, the other grabbers can't).
+        items.Add(Item(Strings.RecordWindow, SelectWindow, settings.Area == AreaMode.Window, enabled: graphicsCapture));
         items.Add(new Separator());
         var select = Item(Strings.SelectArea, SelectArea);
         select.InputGestureText = AreaHotkey.Text;
@@ -392,6 +528,15 @@ public partial class MainWindow : Window
             frame.Region = r;
             SetArea(AreaMode.Region);
         }
+    }
+
+    void SelectWindow()
+    {
+        var overlay = new RegionSelectOverlay(windowsOnly: true);
+        overlay.ShowDialog();
+        if (overlay.ResultWindow == 0) return;
+        captureWindow = overlay.ResultWindow;
+        SetArea(AreaMode.Window);
     }
 
     void EditCustomSizes()

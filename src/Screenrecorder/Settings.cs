@@ -3,7 +3,7 @@ using System.Text.Json;
 
 namespace Screenrecorder;
 
-public enum AreaMode { Region, PrimaryScreen, SecondaryScreen, AllScreens }
+public enum AreaMode { Region, PrimaryScreen, SecondaryScreen, AllScreens, Window }
 
 public enum ThemeChoice { System, Light, Dark }
 
@@ -26,6 +26,13 @@ public sealed class Settings
     public string HotkeyRecord { get; set; } = "F2";
     public string HotkeyPause { get; set; } = "F3";
     public string HotkeySelectArea { get; set; } = "F4";
+    // F8: F5/F6 would globally take reload / address bar away from browsers while the app runs.
+    public string HotkeyScreenshot { get; set; } = "F8";
+    /// <summary>3-2-1 countdown before a recording starts.</summary>
+    public bool Countdown { get; set; }
+    /// <summary>Stop automatically after this many minutes / megabytes; 0 = no limit.</summary>
+    public int LimitMinutes { get; set; }
+    public int LimitMb { get; set; }
     public string OutputFolder { get; set; } = DefaultOutputFolder;
     public string FileNamePattern { get; set; } = FileNamer.DefaultPattern;
     /// <summary>Value of the &lt;Nr&gt; placeholder for the next recording.</summary>

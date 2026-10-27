@@ -52,6 +52,16 @@ public static class WindowPicker
         return rect is PixelRect v ? Displays.Even(v) : null;
     }
 
+    /// <summary>The whole top-level window at (x, y) (not this app's), for window capture.</summary>
+    public static (long Hwnd, PixelRect Bounds)? WindowAt(int x, int y)
+    {
+        var top = TopLevelAt(x, y, (uint)Environment.ProcessId);
+        return top == IntPtr.Zero ? null : (top, TopLevelBounds(top));
+    }
+
+    /// <summary>Visible bounds of a top-level window (without the invisible shadow border).</summary>
+    public static PixelRect Bounds(long hwnd) => TopLevelBounds((IntPtr)hwnd);
+
     static IntPtr TopLevelAt(int x, int y, uint ignoredPid)
     {
         var found = IntPtr.Zero;

@@ -78,4 +78,23 @@
   <data name="Fps" xml:space="preserve"><value>Bildrate (fps)</value></data>
   <data name="FpsHint" xml:space="preserve"><value>Wert auswählen oder eine ganze Zahl von 1 bis 240 eintippen. Mehr fps wirken flüssiger, machen die Datei aber größer; mehr als die Bildwiederholrate des Monitors bringt nichts.</value></data>
   <data name="InvalidFps" xml:space="preserve"><value>Ungültige Bildrate: {0}. Bitte eine ganze Zahl von 1 bis 240 eingeben.</value></data>
+  <data name="Screenshot" xml:space="preserve"><value>Bild</value></data>
+  <data name="HotkeyScreenshotLabel" xml:space="preserve"><value>Screenshot aufnehmen</value></data>
+  <data name="RecordWindow" xml:space="preserve"><value>Fenster aufnehmen…</value></data>
+  <data name="WindowGone" xml:space="preserve"><value>Das gewählte Fenster existiert nicht mehr. Bitte über Bereich › Fenster aufnehmen neu auswählen.</value></data>
+  <data name="WaitingForWindow" xml:space="preserve"><value>Warte auf Bild – Maus über das Fenster bewegen</value></data>
+  <data name="Countdown" xml:space="preserve"><value>Countdown vor der Aufnahme (3 s)</value></data>
+  <data name="AutoStop" xml:space="preserve"><value>Automatisch stoppen</value></data>
+  <data name="LimitMinutes" xml:space="preserve"><value>nach Minuten (0 = aus):</value></data>
+  <data name="LimitMb" xml:space="preserve"><value>bei Dateigröße in MB (0 = aus):</value></data>
+  <data name="InvalidLimit" xml:space="preserve"><value>Limits müssen ganze Zahlen ab 0 sein.</value></data>
+  <data name="DiskLow" xml:space="preserve"><value>Auf dem Ziellaufwerk sind nur noch {0} frei. Trotzdem aufnehmen?</value></data>
+  <data name="DiskCritical" xml:space="preserve"><value>Zu wenig freier Speicher auf dem Ziellaufwerk (noch {0}).</value></data>
+  <data name="StoppedDiskFull" xml:space="preserve"><value>Aufnahme gestoppt: Laufwerk fast voll</value></data>
+  <data name="StoppedLimit" xml:space="preserve"><value>Aufnahme gestoppt: Limit erreicht</value></data>
+  <data name="RecordingSaved" xml:space="preserve"><value>Aufnahme gespeichert</value></data>
+  <data name="ScreenshotSaved" xml:space="preserve"><value>Screenshot gespeichert und in die Zwischenablage kopiert</value></data>
+  <data name="ShowWindow" xml:space="preserve"><value>Fenster anzeigen</value></data>
+  <data name="Exit" xml:space="preserve"><value>Beenden</value></data>
+  <data name="NoData" xml:space="preserve"><value>Es wurde nichts aufgenommen.</value></data>
 </root>
