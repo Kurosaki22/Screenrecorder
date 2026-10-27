@@ -3,9 +3,12 @@ namespace Screenrecorder;
 /// <summary>Raw PCM arriving through a named pipe, described in ffmpeg's terms (e.g. f32le, 48000, 2).</summary>
 public sealed record AudioInput(string PipePath, string SampleFormat, int SampleRate, int Channels);
 
-/// <summary>Everything one recording segment needs besides the output path.</summary>
+/// <summary>
+/// Everything one recording segment needs besides the output path. The channels carry the mixer's live gain
+/// and receive level peaks; null means unity gain and no meter.
+/// </summary>
 public sealed record RecordOptions(CaptureArea Area, VideoEncoder Encoder, int Fps, int Quality, bool ShowCursor,
-    bool SystemAudio, bool Microphone);
+    bool SystemAudio, bool Microphone, AudioChannel? SystemChannel = null, AudioChannel? MicChannel = null);
 
 public static class FfmpegArgs
 {

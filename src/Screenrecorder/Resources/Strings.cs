@@ -103,4 +103,6 @@ public static class Strings
     public static string ShowWindow => Get();
     public static string Exit => Get();
     public static string NoData => Get();
+    public static string MixerResetHint => Get();
+    public static string Saving => Get();
 }

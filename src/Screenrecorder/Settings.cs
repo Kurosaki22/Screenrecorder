@@ -15,6 +15,9 @@ public sealed class Settings
     public int Fps { get; set; } = 60;
     public bool SystemAudio { get; set; } = true;
     public bool Microphone { get; set; }
+    /// <summary>Mixer volume per source in dB (−40 … +12).</summary>
+    public double SystemGainDb { get; set; }
+    public double MicGainDb { get; set; }
     /// <summary>"" = follow Windows, otherwise "de" or "en".</summary>
     public string Language { get; set; } = "";
     /// <summary>User-defined sizes, e.g. "1600x900".</summary>

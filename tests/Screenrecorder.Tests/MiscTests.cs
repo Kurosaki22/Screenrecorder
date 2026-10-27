@@ -218,6 +218,58 @@ public class MiniBarPlacementTests
     }
 }
 
+public class AudioLevelTests
+{
+    static byte[] Floats(params float[] samples) => System.Runtime.InteropServices.MemoryMarshal.AsBytes(samples.AsSpan()).ToArray();
+    static float[] Samples(byte[] bytes) => System.Runtime.InteropServices.MemoryMarshal.Cast<byte, float>(bytes).ToArray();
+
+    [Fact]
+    public void Decibels_map_to_linear_gain()
+    {
+        Assert.Equal(1f, AudioLevel.DbToGain(0), 3);
+        Assert.Equal(1.995f, AudioLevel.DbToGain(6), 3);
+        Assert.Equal(3.981f, AudioLevel.DbToGain(12), 3); // the mixer's maximum boost, ~400 %
+    }
+
+    [Fact]
+    public void Gain_scales_samples_in_place_clamps_and_reports_the_peak()
+    {
+        var buffer = Floats(0.1f, -0.2f, 0.8f);
+        var peak = AudioLevel.ApplyGain(buffer, 2f);
+        Assert.Equal([0.2f, -0.4f, 1f], Samples(buffer)); // 0.8 * 2 is clipped to full scale, not wrapped
+        Assert.Equal(1f, peak);
+    }
+
+    [Fact]
+    public void Peak_without_changing_the_samples()
+    {
+        var buffer = Floats(0.1f, -0.3f);
+        Assert.Equal(0.6f, AudioLevel.Peak(buffer, 2f), 5);
+        Assert.Equal([0.1f, -0.3f], Samples(buffer));
+    }
+
+    [Fact]
+    public void Peaks_convert_to_decibels_with_a_floor()
+    {
+        Assert.Equal(0, AudioLevel.PeakToDb(1f), 3);
+        Assert.Equal(-6.02, AudioLevel.PeakToDb(0.5f), 2);
+        Assert.Equal(AudioLevel.FloorDb, AudioLevel.PeakToDb(0f));
+        Assert.Equal(AudioLevel.FloorDb, AudioLevel.PeakToDb(0.0000001f));
+    }
+
+    [Fact]
+    public void Channel_keeps_the_highest_peak_until_read()
+    {
+        var channel = new AudioChannel(6);
+        Assert.Equal(1.995f, channel.Gain, 3);
+        channel.Report(0.3f);
+        channel.Report(0.7f);
+        channel.Report(0.5f);
+        Assert.Equal(0.7f, channel.TakePeak());
+        Assert.Equal(0f, channel.TakePeak());
+    }
+}
+
 public class DiskSpaceTests
 {
     [Theory]

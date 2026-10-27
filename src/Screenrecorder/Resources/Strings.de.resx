@@ -97,4 +97,6 @@
   <data name="ShowWindow" xml:space="preserve"><value>Fenster anzeigen</value></data>
   <data name="Exit" xml:space="preserve"><value>Beenden</value></data>
   <data name="NoData" xml:space="preserve"><value>Es wurde nichts aufgenommen.</value></data>
+  <data name="MixerResetHint" xml:space="preserve"><value>Lautstärke; Doppelklick setzt auf 0 dB zurück</value></data>
+  <data name="Saving" xml:space="preserve"><value>Speichere Aufnahme…</value></data>
 </root>

@@ -24,6 +24,8 @@ frei definierbarem Aufnahmebereich und Systemsound + Mikrofon.
 - **Codecs**: H.264 / H.265 / AV1 über NVENC, Quick Sync, AMF, Windows Media Foundation, SVT-AV1 (CPU).
   Beim Start wird jeder Encoder per Testkodierung geprüft; angezeigt wird nur, was auf dem Rechner funktioniert.
 - **Ton**: Systemsound (WASAPI Loopback) und Mikrofon, gemischt, als Opus
+- **Audio-Mixer** (Button „Ton“): pro Quelle an/aus, Pegelanzeige (grün/gelb/rot) und Lautstärke −40 … **+12 dB (400 %)**;
+  auch während der Aufnahme regelbar, Doppelklick auf den Regler setzt auf 0 dB zurück
 - **Pause**: Aufnahme pausieren und fortsetzen; am Ende entsteht eine einzige Datei
 - **Hotkeys** (global, in den Einstellungen änderbar): **F2** Aufnahme starten/stoppen, **F3** Pause/Fortsetzen,
   **F4** Bereich auswählen, **F8** Screenshot; der aktuelle Hotkey steht unter dem jeweiligen Button

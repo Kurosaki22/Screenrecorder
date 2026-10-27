@@ -21,6 +21,8 @@ public partial class MainWindow : Window
     Settings settings;
     readonly RegionFrameWindow frame = new();
     readonly MiniBar miniBar = new();
+    readonly AudioChannel systemChannel, micChannel; // mixer gain + level, shared with every recording segment
+    AudioMeter? idleMeter;
     readonly DispatcherTimer statusTimer = new() { Interval = TimeSpan.FromMilliseconds(500) };
     string? ffmpeg;
     List<VideoEncoder>? encoders;
@@ -35,9 +37,24 @@ public partial class MainWindow : Window
     public MainWindow(Settings settings)
     {
         this.settings = settings;
+        systemChannel = new AudioChannel(settings.SystemGainDb);
+        micChannel = new AudioChannel(settings.MicGainDb);
         InitializeComponent();
         statusTimer.Tick += (_, _) => UpdateStatus();
         Loaded += OnLoaded;
+
+        Mixer.Bind(() => this.settings, systemChannel, micChannel);
+        Mixer.SourcesChanged += UpdateIdleMeter;
+        MixerPopup.Opened += (_, _) =>
+        {
+            Mixer.Start();
+            UpdateIdleMeter();
+        };
+        MixerPopup.Closed += (_, _) =>
+        {
+            Mixer.Stop();
+            UpdateIdleMeter();
+        };
         // Idle and minimized: the frame would otherwise float alone on the desktop.
         StateChanged += (_, _) =>
         {
@@ -241,7 +258,7 @@ public partial class MainWindow : Window
             ? new CaptureArea(Grabber.GraphicsCapture, rect, Window: captureWindow)
             : Displays.Locate(rect, displays, graphicsCapture ? Native.Monitors() : null);
         var options = new RecordOptions(area, encoders!.First(x => x.Name == settings.Encoder),
-            settings.Fps, settings.Quality, settings.ShowCursor, settings.SystemAudio, settings.Microphone);
+            settings.Fps, settings.Quality, settings.ShowCursor, settings.SystemAudio, settings.Microphone, systemChannel, micChannel);
         try
         {
             Directory.CreateDirectory(settings.OutputFolder);
@@ -280,7 +297,11 @@ public partial class MainWindow : Window
         var s = session!;
         session = null;
         SetRecordingUi(false);
-        if (await s.StopAsync() is string error)
+        // Finishing can take a moment (joining paused segments; older ffmpeg builds wait ~10 s on a static captured window).
+        Title = "⏳ " + Strings.Saving;
+        var error = await s.StopAsync();
+        Title = "Screenrecorder";
+        if (error is not null)
             ShowFailure(error);
         else
             Notify(stopReason ?? Strings.RecordingSaved, s.OutputPath);
@@ -296,8 +317,11 @@ public partial class MainWindow : Window
         RecordText.Text = on ? Strings.Stop : Strings.Record;
         // Pause stays visible (only disabled) so the window never changes size; status lives in the title.
         PauseButton.IsEnabled = on;
-        AreaButton.IsEnabled = CodecsButton.IsEnabled = SoundButton.IsEnabled = SettingsButton.IsEnabled = !on;
+        // Sound stays enabled: the mixer adjusts volume live during a recording.
+        AreaButton.IsEnabled = CodecsButton.IsEnabled = SettingsButton.IsEnabled = !on;
         frame.Recording = on;
+        Mixer.SetRecording(on);
+        UpdateIdleMeter();
         if (on)
         {
             UpdatePauseUi();
@@ -436,6 +460,7 @@ public partial class MainWindow : Window
         settings.Save();
         UnregisterHotkeys();
         tray?.Dispose(); // otherwise the icon lingers in the tray until the mouse passes over it
+        idleMeter?.Dispose();
     }
 
     void UnregisterHotkeys()
@@ -573,11 +598,19 @@ public partial class MainWindow : Window
         ShowMenu(CodecsButton, items); // frame rate lives in Settings > Recording
     }
 
-    void Sound_Click(object sender, RoutedEventArgs e) => ShowMenu(SoundButton,
-    [
-        Item(Strings.SystemSound, () => settings.SystemAudio = !settings.SystemAudio, settings.SystemAudio),
-        Item(Strings.Microphone, () => settings.Microphone = !settings.Microphone, settings.Microphone),
-    ]);
+    void Sound_Click(object sender, RoutedEventArgs e) => MixerPopup.IsOpen = true;
+
+    /// <summary>
+    /// While the mixer is open and nothing records, a meter-only capture feeds the level bars; during a recording
+    /// the recorder's own audio writers do that.
+    /// </summary>
+    void UpdateIdleMeter()
+    {
+        idleMeter?.Dispose();
+        idleMeter = MixerPopup.IsOpen && session is null
+            ? new AudioMeter(settings.SystemAudio ? systemChannel : null, settings.Microphone ? micChannel : null)
+            : null;
+    }
 
     void Open_Click(object sender, RoutedEventArgs e)
     {

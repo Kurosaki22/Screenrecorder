@@ -1,0 +1,53 @@
+﻿<UserControl x:Class="Screenrecorder.AudioMixer"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:res="clr-namespace:Screenrecorder.Resources"
+             Width="380">
+    <UserControl.Resources>
+        <!-- OBS colors: green below -20 dB, yellow up to -9 dB, red above; offsets are (dB + 60) / 60 -->
+        <LinearGradientBrush x:Key="MeterBrush" StartPoint="0,0" EndPoint="1,0">
+            <GradientStop Color="#4CAF50" Offset="0" />
+            <GradientStop Color="#4CAF50" Offset="0.6667" />
+            <GradientStop Color="#FFC107" Offset="0.6667" />
+            <GradientStop Color="#FFC107" Offset="0.85" />
+            <GradientStop Color="#F44336" Offset="0.85" />
+            <GradientStop Color="#F44336" Offset="1" />
+        </LinearGradientBrush>
+        <Style x:Key="Meter" TargetType="Grid">
+            <Setter Property="Height" Value="10" />
+            <Setter Property="Margin" Value="0,6,0,2" />
+        </Style>
+    </UserControl.Resources>
+
+    <!-- Fluent's solid brushes: the window background is Mica, which a popup cannot draw -->
+    <Border x:Name="Panel" CornerRadius="8" Padding="16,12" BorderThickness="1" BorderBrush="#40808080"
+            Background="{DynamicResource SolidBackgroundFillColorBaseBrush}"
+            TextElement.Foreground="{DynamicResource TextFillColorPrimaryBrush}">
+        <StackPanel>
+            <DockPanel>
+                <TextBlock x:Name="SystemValue" DockPanel.Dock="Right" VerticalAlignment="Center" Opacity="0.8" />
+                <CheckBox x:Name="SystemBox" Content="{x:Static res:Strings.SystemSound}" />
+            </DockPanel>
+            <Grid x:Name="SystemMeter" Style="{StaticResource Meter}">
+                <Rectangle Fill="{StaticResource MeterBrush}" RadiusX="2" RadiusY="2" />
+                <!-- dark mask from the right uncovers the level; the thin bar marks the held peak -->
+                <Rectangle x:Name="SystemMask" Fill="#E0202020" HorizontalAlignment="Right" />
+                <Rectangle x:Name="SystemPeak" Fill="White" Width="2" HorizontalAlignment="Left" />
+            </Grid>
+            <Slider x:Name="SystemSlider" Minimum="-40" Maximum="12" SmallChange="0.5" LargeChange="3"
+                    TickFrequency="0.5" IsSnapToTickEnabled="True" ToolTip="{x:Static res:Strings.MixerResetHint}" />
+
+            <DockPanel Margin="0,14,0,0">
+                <TextBlock x:Name="MicValue" DockPanel.Dock="Right" VerticalAlignment="Center" Opacity="0.8" />
+                <CheckBox x:Name="MicBox" Content="{x:Static res:Strings.Microphone}" />
+            </DockPanel>
+            <Grid x:Name="MicMeter" Style="{StaticResource Meter}">
+                <Rectangle Fill="{StaticResource MeterBrush}" RadiusX="2" RadiusY="2" />
+                <Rectangle x:Name="MicMask" Fill="#E0202020" HorizontalAlignment="Right" />
+                <Rectangle x:Name="MicPeak" Fill="White" Width="2" HorizontalAlignment="Left" />
+            </Grid>
+            <Slider x:Name="MicSlider" Minimum="-40" Maximum="12" SmallChange="0.5" LargeChange="3"
+                    TickFrequency="0.5" IsSnapToTickEnabled="True" ToolTip="{x:Static res:Strings.MixerResetHint}" />
+        </StackPanel>
+    </Border>
+</UserControl>

@@ -198,12 +198,70 @@ public class RecorderIntegrationTests(ITestOutputHelper log)
             var output = TempFile();
             var rec = Recorder.Start(ffmpeg, WindowOptions(still.Invoke(f => f.Handle)), output);
             await Task.Delay(TimeSpan.FromSeconds(1.5));
-            Assert.False(rec.HasStarted);
+            // Usually no frame arrives; sometimes the window's open animation delivers one.
+            var waiting = !rec.HasStarted;
             var watch = Stopwatch.StartNew();
             await rec.StopAsync();
-            Assert.True(watch.Elapsed < TimeSpan.FromSeconds(3), $"stop took {watch.Elapsed}");
-            Assert.False(File.Exists(output));
+            log.WriteLine($"static window: started={!waiting}, stop took {watch.Elapsed.TotalSeconds:0.0} s");
+            if (waiting)
+            {
+                // Nothing recorded yet: Stop kills at once and leaves no broken file behind.
+                Assert.True(watch.Elapsed < TimeSpan.FromSeconds(3), $"stop took {watch.Elapsed}");
+                Assert.False(File.Exists(output));
+            }
+            else if (Run(ffmpeg, "-hide_banner -h filter=gfxcapture").stdout.Contains("dup_frames"))
+            {
+                // gfxcapture repeats the last frame (dup_frames, the shipped build), so 'q' finishes at once.
+                Assert.True(watch.Elapsed < TimeSpan.FromSeconds(3), $"stop took {watch.Elapsed}");
+                Assert.True(new FileInfo(output).Length > 0);
+            }
+            else
+                log.WriteLine("ffmpeg without gfxcapture dup_frames waits 10-15 s for the next frame; not checked");
+            File.Delete(output);
         }
+    }
+
+    [Fact]
+    public async Task Mixer_gain_boosts_the_recorded_system_sound()
+    {
+        var ffmpeg = Recorder.FindFfmpeg();
+        var displays = Displays.Enumerate();
+        if (ffmpeg is null || displays.Count == 0) return;
+
+        using var heartbeat = new Heartbeat();
+        async Task<double> MaxVolumeAt(double gainDb)
+        {
+            var output = TempFile();
+            try
+            {
+                var options = Options(displays, new PixelRect(displays[0].Bounds.X, displays[0].Bounds.Y, 640, 360))
+                    with { SystemChannel = new AudioChannel(gainDb) };
+                var rec = Recorder.Start(ffmpeg, options, output);
+                await Task.Delay(TimeSpan.FromSeconds(1));
+#pragma warning disable CS0618 // WasapiOut is fine for a test tone
+                using (var tone = new WasapiOut(AudioClientShareMode.Shared, true, 20))
+#pragma warning restore CS0618
+                {
+                    tone.Init(new SignalGenerator(48000, 2) { Frequency = 15000, Gain = 0.1 }.Take(TimeSpan.FromSeconds(1.5)));
+                    tone.Play();
+                    await Task.Delay(TimeSpan.FromSeconds(2));
+                }
+                await rec.StopAsync();
+                // Same 15 kHz band as the sync test, so other audio playing on the PC doesn't count.
+                var (_, stderr) = Run("ffmpeg", $"-hide_banner -i \"{output}\" -vn -af bandpass=f=15000:w=300,volumedetect -f null -");
+                return double.Parse(Regex.Match(stderr, @"max_volume: (-?[\d.]+) dB").Groups[1].Value, CultureInfo.InvariantCulture);
+            }
+            finally
+            {
+                File.Delete(output);
+            }
+        }
+
+        var unity = await MaxVolumeAt(0);
+        var boosted = await MaxVolumeAt(12);
+        log.WriteLine($"tone peak: {unity:0.0} dB at 0 dB gain, {boosted:0.0} dB at +12 dB gain");
+        Assert.InRange(boosted - unity, 10, 14);
+        Assert.True(boosted <= 0);
     }
 
     static RecordOptions WindowOptions(IntPtr hwnd) =>

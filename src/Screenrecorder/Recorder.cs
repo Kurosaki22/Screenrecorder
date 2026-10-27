@@ -44,8 +44,8 @@ public sealed class Recorder
         {
             // shortcut: NAudio 3 marks these IWaveIn classes obsolete in favour of WasapiRecorder; migrate if they get removed.
 #pragma warning disable CS0618
-            if (options.SystemAudio) writers.Add(new AudioPipeWriter(new WasapiLoopbackCapture()));
-            if (options.Microphone) writers.Add(new AudioPipeWriter(new WasapiCapture()));
+            if (options.SystemAudio) writers.Add(new AudioPipeWriter(new WasapiLoopbackCapture(), options.SystemChannel));
+            if (options.Microphone) writers.Add(new AudioPipeWriter(new WasapiCapture(), options.MicChannel));
 #pragma warning restore CS0618
         }
         catch

@@ -22,7 +22,7 @@ public sealed class AudioPipeWriter : IDisposable
 
     public AudioInput Input { get; }
 
-    public AudioPipeWriter(IWaveIn capture)
+    public AudioPipeWriter(IWaveIn capture, AudioChannel? channel = null)
     {
         this.capture = capture;
         var name = $"screenrecorder_{Guid.NewGuid():N}";
@@ -30,8 +30,12 @@ public sealed class AudioPipeWriter : IDisposable
         var wf = capture.WaveFormat;
         blockAlign = wf.BlockAlign;
         Input = new AudioInput($@"\\.\pipe\{name}", SampleFormat(wf), wf.SampleRate, wf.Channels);
+        // shortcut: gain and meter only for float PCM (what WASAPI shared mode delivers); add int formats if a device needs it.
+        var isFloat = Input.SampleFormat == "f32le";
         capture.DataAvailable += (_, e) =>
         {
+            if (channel is not null && isFloat)
+                channel.Report(AudioLevel.ApplyGain(e.Buffer.AsSpan(0, e.BytesRecorded), channel.Gain));
             lock (gate)
             {
                 lastData = clock.Elapsed;
