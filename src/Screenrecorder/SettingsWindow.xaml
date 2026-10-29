@@ -37,6 +37,7 @@
 
         <!-- One page per category; Categories_SelectionChanged shows the matching child. -->
         <Grid x:Name="Pages" Grid.Column="2">
+            <ScrollViewer VerticalScrollBarVisibility="Auto">
             <StackPanel>
                 <TextBlock Text="{x:Static res:Strings.Quality}" Style="{StaticResource Header}" />
                 <DockPanel>
@@ -66,8 +67,10 @@
                     <TextBox x:Name="LimitMbBox" Width="100" />
                 </StackPanel>
             </StackPanel>
+            </ScrollViewer>
 
-            <StackPanel Visibility="Collapsed">
+            <ScrollViewer VerticalScrollBarVisibility="Auto" Visibility="Collapsed">
+            <StackPanel>
                 <TextBlock Text="{x:Static res:Strings.CategoryHotkeys}" Style="{StaticResource Header}" />
                 <Grid>
                     <Grid.ColumnDefinitions>
@@ -95,8 +98,10 @@
                 </Grid>
                 <TextBlock Text="{x:Static res:Strings.HotkeyHelp}" Style="{StaticResource Hint}" Margin="0,16,0,0" />
             </StackPanel>
+            </ScrollViewer>
 
-            <StackPanel Visibility="Collapsed">
+            <ScrollViewer VerticalScrollBarVisibility="Auto" Visibility="Collapsed">
+            <StackPanel>
                 <TextBlock Text="{x:Static res:Strings.OutputFolder}" Margin="0,0,0,4" />
                 <DockPanel>
                     <Button Content="…" DockPanel.Dock="Right" Width="44" Margin="8,0,0,0" Click="BrowseFolder_Click" />
@@ -113,8 +118,10 @@
                 </StackPanel>
                 <TextBlock x:Name="FileNamePreview" Margin="0,16,0,0" TextWrapping="Wrap" />
             </StackPanel>
+            </ScrollViewer>
 
-            <StackPanel Visibility="Collapsed">
+            <ScrollViewer VerticalScrollBarVisibility="Auto" Visibility="Collapsed">
+            <StackPanel>
                 <TextBlock Text="{x:Static res:Strings.Language}" Style="{StaticResource Header}" />
                 <ComboBox x:Name="LanguageBox" Width="240" HorizontalAlignment="Left" />
                 <TextBlock Text="{x:Static res:Strings.RestartHint}" Style="{StaticResource Hint}" Margin="0,6,0,0" />
@@ -123,6 +130,7 @@
                 <RadioButton x:Name="ThemeLight" Content="{x:Static res:Strings.ThemeLight}" GroupName="Theme" />
                 <RadioButton x:Name="ThemeDark" Content="{x:Static res:Strings.ThemeDark}" GroupName="Theme" />
             </StackPanel>
+            </ScrollViewer>
 
             <DockPanel Visibility="Collapsed">
                 <TextBlock DockPanel.Dock="Top" Text="Screenrecorder" Style="{StaticResource Header}" />
