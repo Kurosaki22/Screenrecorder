@@ -15,7 +15,21 @@
     <NoWarn>$(NoWarn);WPF0001</NoWarn>
     <Product>Screenrecorder</Product>
     <Copyright>Copyright © 2026. All rights reserved.</Copyright>
+    <!-- Checked here, before the SDK defaults Version to 1.0.0; CI passes -p:Version from the tag. -->
+    <VersionFromGit Condition="'$(Version)' == ''">true</VersionFromGit>
   </PropertyGroup>
+
+  <!-- Local builds: take the version from the latest git tag (v0.4.2 -> 0.4.2); keeps 1.0.0 without git or tags. -->
+  <Target Name="SetVersionFromGit" BeforeTargets="GetAssemblyVersion" Condition="'$(VersionFromGit)' == 'true'">
+    <Exec Command="git describe --tags --abbrev=0" ConsoleToMSBuild="true" IgnoreExitCode="true" EchoOff="true"
+          StandardOutputImportance="low" StandardErrorImportance="low" WorkingDirectory="$(MSBuildProjectDirectory)">
+      <Output TaskParameter="ConsoleOutput" PropertyName="GitTag" />
+      <Output TaskParameter="ExitCode" PropertyName="GitExitCode" />
+    </Exec>
+    <PropertyGroup Condition="'$(GitExitCode)' == '0'">
+      <Version>$(GitTag.TrimStart('v'))</Version>
+    </PropertyGroup>
+  </Target>
 
   <ItemGroup>
     <Using Remove="System.Windows.Forms" />
