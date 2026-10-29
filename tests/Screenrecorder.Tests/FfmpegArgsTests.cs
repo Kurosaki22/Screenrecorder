@@ -123,6 +123,16 @@ public class FfmpegArgsTests
     }
 
     [Fact]
+    public void Quick_sync_quality_applies_to_video_only()
+    {
+        // Bare -global_quality also hits libopus, which rejects quality mode (issue #1).
+        var qsv = Encoders.Known.Single(e => e.Name == "h264_qsv");
+        var line = Line(FfmpegArgs.Build(Options(Small, qsv), [Sys], "o.mp4"));
+        Assert.Contains("-global_quality:v 23", line);
+        Assert.DoesNotContain("-global_quality ", line);
+    }
+
+    [Fact]
     public void Two_audio_sources_are_mixed()
     {
         var line = Line(FfmpegArgs.Build(Options(Small, Nvenc), [Sys, Mic], "o.mp4"));

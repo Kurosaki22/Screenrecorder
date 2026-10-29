@@ -29,9 +29,9 @@ public static class Encoders
         new("hevc_nvenc", "H.265 / HEVC (NVENC)", "NVIDIA", true, Nvenc, "-cq", 44, 20),
         new("av1_nvenc", "AV1 (NVENC)", "NVIDIA", true, Nvenc, "-cq", 50, 24),
         // shortcut: QSV/AMF go through hwdownload (untested on Intel/AMD hardware); zero-copy could be added there.
-        new("h264_qsv", "H.264 (Quick Sync)", "Intel", false, [], "-global_quality", 45, 18),
-        new("hevc_qsv", "H.265 / HEVC (Quick Sync)", "Intel", false, [], "-global_quality", 45, 18),
-        new("av1_qsv", "AV1 (Quick Sync)", "Intel", false, [], "-global_quality", 50, 22),
+        new("h264_qsv", "H.264 (Quick Sync)", "Intel", false, [], "-global_quality:v", 45, 18),
+        new("hevc_qsv", "H.265 / HEVC (Quick Sync)", "Intel", false, [], "-global_quality:v", 45, 18),
+        new("av1_qsv", "AV1 (Quick Sync)", "Intel", false, [], "-global_quality:v", 50, 22),
         new("h264_amf", "H.264 (AMF)", "AMD", false, [], "-b:v", 2, 24, "M"),
         new("hevc_amf", "H.265 / HEVC (AMF)", "AMD", false, [], "-b:v", 1, 16, "M"),
         new("av1_amf", "AV1 (AMF)", "AMD", false, [], "-b:v", 1, 16, "M"),
