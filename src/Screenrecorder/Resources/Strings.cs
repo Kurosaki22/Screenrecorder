@@ -105,4 +105,5 @@ public static class Strings
     public static string NoData => Get();
     public static string MixerResetHint => Get();
     public static string Saving => Get();
+    public static string FileNamePrefix => Get();
 }

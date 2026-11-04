@@ -99,4 +99,5 @@
   <data name="NoData" xml:space="preserve"><value>Es wurde nichts aufgenommen.</value></data>
   <data name="MixerResetHint" xml:space="preserve"><value>Lautstärke; Doppelklick setzt auf 0 dB zurück</value></data>
   <data name="Saving" xml:space="preserve"><value>Speichere Aufnahme…</value></data>
+  <data name="FileNamePrefix" xml:space="preserve"><value>Aufnahme</value></data>
 </root>

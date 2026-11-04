@@ -1,11 +1,13 @@
 using System.IO;
+using Screenrecorder.Resources;
 
 namespace Screenrecorder;
 
-/// <summary>Builds output file names from patterns like "Aufnahme_&lt;YYYY&gt;_&lt;MM&gt;_&lt;DD&gt;_&lt;HH&gt;_&lt;NN&gt;_&lt;SS&gt;_&lt;Z&gt;".</summary>
+/// <summary>Builds output file names from patterns like "Recording_&lt;YYYY&gt;_&lt;MM&gt;_&lt;DD&gt;_&lt;HH&gt;_&lt;NN&gt;_&lt;SS&gt;_&lt;Z&gt;".</summary>
 public static class FileNamer
 {
-    public const string DefaultPattern = "Aufnahme_<YYYY>_<MM>_<DD>_<HH>_<NN>_<SS>_<Z>";
+    /// <summary>"Recording_…" or "Aufnahme_…" depending on the UI language.</summary>
+    public static string DefaultPattern => Strings.FileNamePrefix + "_<YYYY>_<MM>_<DD>_<HH>_<NN>_<SS>_<Z>";
 
     /// <summary>Placeholders in the order the settings menu offers them.</summary>
     public static readonly string[] Tokens = ["<YYYY>", "<MM>", "<DD>", "<HH>", "<NN>", "<SS>", "<Z>", "<Nr>"];
@@ -22,7 +24,7 @@ public static class FileNamer
             .Replace("<Z>", time.ToString("fff"))
             .Replace("<Nr>", number.ToString());
         name = string.Concat(name.Select(c => Path.GetInvalidFileNameChars().Contains(c) ? '_' : c)).Trim().TrimEnd('.');
-        return name.Length == 0 ? "Aufnahme" : name;
+        return name.Length == 0 ? Strings.FileNamePrefix : name;
     }
 
     /// <summary>folder\name.mp4, or name_2.mp4, name_3.mp4 … if that file already exists.</summary>

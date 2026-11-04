@@ -35,7 +35,8 @@ a freely definable capture area, and system sound + microphone.
   mouse cursor on/off, hotkeys, output folder and file name with placeholders
   (`<YYYY> <MM> <DD> <HH> <NN> <SS> <Z> <Nr>`), language (German/English), color scheme (Windows/Light/Dark),
   About with licenses
-- Default output: `%USERPROFILE%\Videos\Screenrecorder\Aufnahme_YYYY_MM_DD_hh_mm_ss_zzz.mp4`
+- Default output: `%USERPROFILE%\Videos\Screenrecorder\Recording_YYYY_MM_DD_hh_mm_ss_zzz.mp4`
+  (`Aufnahme_…` when the app runs in German)
 
 ![Audio mixer](docs/screenshots/mixer.png)
 
