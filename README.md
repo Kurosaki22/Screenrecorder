@@ -1,70 +1,83 @@
 # Screenrecorder
 
-Schlanker Bildschirmrekorder für Windows 11 mit GPU-Encoding (NVIDIA NVENC inkl. RTX 50, Intel Quick Sync, AMD AMF),
-frei definierbarem Aufnahmebereich und Systemsound + Mikrofon.
+Lean screen recorder for Windows 11 with GPU encoding (NVIDIA NVENC incl. RTX 50, Intel Quick Sync, AMD AMF),
+a freely definable capture area, and system sound + microphone.
 
-## Funktionen
+![Main window](docs/screenshots/main-window.png)
 
-- **Bereich**: verschiebbarer Rahmen mit Presets (YouTube 720p/1080p, 16:9, 4:3), eigene Größen, Bereich aufziehen,
-  Hauptbildschirm, zweiter Bildschirm, ganzer Desktop
-- **Bereich auswählen** schlägt beim Überfahren das Fenster bzw. den Fensterteil unter der Maus vor (z. B. die
-  Webseitenfläche im Browser); Klick übernimmt, Ziehen zeichnet frei
-- **Fenster aufnehmen** (Bereich-Menü): nimmt ein bestimmtes Fenster auf, auch wenn es verschoben oder verdeckt wird.
-  Windows liefert das erste Bild erst, wenn sich im Fenster etwas tut; bis dahin zeigt die Steuerleiste
-  „Warte auf Bild – Maus über das Fenster bewegen“.
-- **Screenshot** (Button „Bild“, **F8**): PNG in den Ausgabeordner und in die Zwischenablage
-- **Absturzsicher**: Die MP4 wird fortlaufend in Stücken geschrieben; stürzt App oder PC ab, bleibt alles bis auf die
-  letzten ~2 s abspielbar. Vor und während der Aufnahme wird der freie Speicherplatz geprüft.
-- **Countdown** 3-2-1 vor dem Start (optional, Einstellungen), **automatischer Stopp** nach X Minuten oder X MB
-- **Infobereich-Symbol** mit Menü und Windows-Benachrichtigung nach jeder Aufnahme/jedem Screenshot (Klick öffnet
-  den Ordner mit markierter Datei). Wird das Fenster ohne laufende Aufnahme minimiert, verschwindet auch der Rahmen.
-- **Während der Aufnahme**: Laufzeit und aktuelle Dateigröße im Fenster und in der Titelleiste. Eine kleine
-  Steuerleiste (Zeit, Größe, Pause/Fortsetzen, Stopp) sitzt unten links am Rahmen, oben links wenn unten kein Platz ist;
-  sie wird nie mitaufgenommen. Der Rahmen ist rot bei Aufnahme und orange bei Pause.
-- **Codecs**: H.264 / H.265 / AV1 über NVENC, Quick Sync, AMF, Windows Media Foundation, SVT-AV1 (CPU).
-  Beim Start wird jeder Encoder per Testkodierung geprüft; angezeigt wird nur, was auf dem Rechner funktioniert.
-- **Ton**: Systemsound (WASAPI Loopback) und Mikrofon, gemischt, als Opus
-- **Audio-Mixer** (Button „Ton“): pro Quelle an/aus, Pegelanzeige (grün/gelb/rot) und Lautstärke −40 … **+12 dB (400 %)**;
-  auch während der Aufnahme regelbar, Doppelklick auf den Regler setzt auf 0 dB zurück
-- **Pause**: Aufnahme pausieren und fortsetzen; am Ende entsteht eine einzige Datei
-- **Hotkeys** (global, in den Einstellungen änderbar): **F2** Aufnahme starten/stoppen, **F3** Pause/Fortsetzen,
-  **F4** Bereich auswählen, **F8** Screenshot; der aktuelle Hotkey steht unter dem jeweiligen Button
-- **Einstellungen**: Qualitätsregler (kleinere Datei ↔ bessere Qualität), Bildrate (Vorschläge 24–240 fps oder
-  eigener Wert 1–240), Mauszeiger an/aus, Hotkeys,
-  Ausgabepfad und Dateiname mit Platzhaltern (`<YYYY> <MM> <DD> <HH> <NN> <SS> <Z> <Nr>`), Sprache (Deutsch/Englisch),
-  Farbschema (Windows/Hell/Dunkel), Info mit Lizenzen
-- Standard-Ausgabe: `%USERPROFILE%\Videos\Screenrecorder\Aufnahme_JJJJ_MM_TT_hh_mm_ss_zzz.mp4`
+## Features
+
+- **Area**: movable frame with presets (YouTube 720p/1080p, 16:9, 4:3), custom sizes, drag to select an area,
+  primary screen, second screen, full desktop
+- **Select area** suggests the window or window part under the mouse while hovering (e.g. the web page area in a
+  browser); click to accept, drag to draw freely
+- **Record a window** (Area menu): records one specific window, even if it is moved or covered.
+  Windows only delivers the first frame once something changes in the window; until then the control bar shows
+  "Waiting for a picture – move the mouse over the window".
+- **Screenshot** (button "Screenshot", **F8**): PNG to the output folder and to the clipboard
+- **Crash-safe**: the MP4 is written continuously in fragments; if the app or PC crashes, everything except the last
+  ~2 s stays playable. Free disk space is checked before and during recording.
+- **Countdown** 3-2-1 before starting (optional, in the settings), **automatic stop** after X minutes or X MB
+- **Tray icon** with a menu and a Windows notification after every recording/screenshot (click opens the folder with
+  the file selected). Minimizing the window while not recording also hides the frame.
+- **While recording**: elapsed time and current file size in the window and the title bar. A small control bar
+  (time, size, pause/resume, stop) sits at the bottom left of the frame, or top left if there is no room below;
+  it is never recorded. The frame is red while recording and orange while paused.
+- **Codecs**: H.264 / H.265 / AV1 via NVENC, Quick Sync, AMF, Windows Media Foundation, SVT-AV1 (CPU).
+  Every encoder is checked with a test encode at startup; only what works on the machine is shown.
+- **Sound**: system sound (WASAPI loopback) and microphone, mixed, as Opus
+- **Audio mixer** (button "Sound"): on/off per source, level meter (green/yellow/red) and volume −40 … **+12 dB (400 %)**;
+  adjustable during recording too, double-click the slider to reset to 0 dB
+- **Pause**: pause and resume a recording; the result is a single file
+- **Hotkeys** (global, configurable in the settings): **F2** start/stop recording, **F3** pause/resume,
+  **F4** select area, **F8** screenshot; the current hotkey is shown under each button
+- **Settings**: quality slider (smaller file ↔ better quality), frame rate (presets 24–240 fps or any value 1–240),
+  mouse cursor on/off, hotkeys, output folder and file name with placeholders
+  (`<YYYY> <MM> <DD> <HH> <NN> <SS> <Z> <Nr>`), language (German/English), color scheme (Windows/Light/Dark),
+  About with licenses
+- Default output: `%USERPROFILE%\Videos\Screenrecorder\Aufnahme_YYYY_MM_DD_hh_mm_ss_zzz.mp4`
+
+![Audio mixer](docs/screenshots/mixer.png)
+
+### Settings
+
+| Recording | Hotkeys |
+|---|---|
+| ![Recording settings](docs/screenshots/settings-recording.png) | ![Hotkey settings](docs/screenshots/settings-hotkeys.png) |
+| **Output** | **Appearance** |
+| ![Output settings](docs/screenshots/settings-output.png) | ![Appearance settings](docs/screenshots/settings-appearance.png) |
 
 ## Installation
 
-`Screenrecorder-vX.Y.Z.exe` aus dem Release herunterladen und starten, mehr braucht es nicht. Die eingebettete
-LGPL-`ffmpeg.exe` wird beim ersten Start nach `%LOCALAPPDATA%\Screenrecorder\ffmpeg\<Version>\` entpackt.
-Eine eigene `ffmpeg.exe` neben der EXE hat Vorrang.
+Download `Screenrecorder-vX.Y.Z.exe` from the release and run it, that's all. The embedded LGPL `ffmpeg.exe` is
+extracted to `%LOCALAPPDATA%\Screenrecorder\ffmpeg\<version>\` on first start.
+An `ffmpeg.exe` of your own next to the EXE takes precedence.
 
-## Hinweise
+## Notes
 
-- Ton wird als **Opus** gespeichert (lizenzfrei). VLC, Browser, YouTube und moderne Schnittprogramme spielen das ab;
-  ältere Player oder Editoren evtl. nicht.
-- Aufnahmen innerhalb eines Monitors laufen komplett auf der GPU über **Windows Graphics Capture**, auf jedem
-  Monitor und jeder Grafikkarte. Das Bild wird mit bis zu 240 Hz abgetastet und gleichmäßig auf die gewählte
-  Bildrate gebracht; gemessen ist die Bewegung damit deutlich gleichmäßiger als mit Desktop Duplication
-  (`tools/motion-test`). Ohne gfxcapture im ffmpeg fällt die App auf Desktop Duplication zurück.
-- Ein Bereich über mehrere Monitore oder „Ganzer Bildschirm“ bei mehreren Monitoren nutzt GDI-Capture (mehr CPU-Last).
+- Sound is stored as **Opus** (royalty-free). VLC, browsers, YouTube and modern video editors play it;
+  older players or editors may not.
+- Recordings within one monitor run entirely on the GPU via **Windows Graphics Capture**, on every monitor and
+  every graphics card. The picture is sampled at up to 240 Hz and evenly converted to the chosen frame rate;
+  measured motion is clearly smoother than with Desktop Duplication (`tools/motion-test`). Without gfxcapture in
+  ffmpeg the app falls back to Desktop Duplication.
+- An area spanning several monitors, or "Full screen (all monitors)" with more than one monitor, uses GDI capture
+  (more CPU load).
 
-## Entwicklung
+## Development
 
-Voraussetzungen: .NET 10 SDK, `ffmpeg`/`ffprobe` im `PATH` für die Integrationstests.
+Requirements: .NET 10 SDK, `ffmpeg`/`ffprobe` on the `PATH` for the integration tests.
 
 ```powershell
 dotnet build
-dotnet test --filter "Category!=Integration"   # schnelle Unit-Tests (wie in CI)
-dotnet test                                    # inkl. echter Aufnahme + A/V-Sync-Messung
+dotnet test --filter "Category!=Integration"   # fast unit tests (as in CI)
+dotnet test                                    # incl. real recording + A/V sync measurement
 dotnet run --project src/Screenrecorder
 ```
 
-Die A/V-Sync-Messung blendet kurz ein weißes Fenster oben links ein und spielt einen leisen Ton ab.
+The A/V sync measurement briefly shows a white window at the top left and plays a quiet tone.
 
-Gleichmäßigkeit der Bewegung messen (braucht Python 3 und Edge; das Testfenster muss im Vordergrund bleiben):
+Measure motion smoothness (needs Python 3 and Edge; the test window must stay in the foreground):
 
 ```powershell
 powershell -File tools/motion-test/run.ps1
@@ -77,12 +90,12 @@ git tag v0.2.0
 git push origin v0.2.0
 ```
 
-Die GitHub Action lädt eine LGPL-`ffmpeg.exe` (bricht bei einem GPL-Build ab), bettet sie samt Lizenztext ein und
-veröffentlicht eine self-contained Single-File-EXE plus `THIRD-PARTY-NOTICES.md` als GitHub Release.
-Lokale Builds betten nichts ein und nutzen `ffmpeg` aus dem `PATH`.
+The GitHub Action downloads an LGPL `ffmpeg.exe` (and aborts on a GPL build), embeds it together with its license
+text, and publishes a self-contained single-file EXE plus `THIRD-PARTY-NOTICES.md` as a GitHub Release.
+Local builds embed nothing and use `ffmpeg` from the `PATH`.
 
-Das App-Icon wird mit `dotnet run tools/make-icon.cs -- src/Screenrecorder/Assets/app.ico preview.png` erzeugt.
+The app icon is generated with `dotnet run tools/make-icon.cs -- src/Screenrecorder/Assets/app.ico preview.png`.
 
-## Lizenz
+## License
 
-Proprietär, alle Rechte vorbehalten (siehe `LICENSE`). Fremdkomponenten: `THIRD-PARTY-NOTICES.md`.
+Proprietary, all rights reserved (see `LICENSE`). Third-party components: `THIRD-PARTY-NOTICES.md`.
