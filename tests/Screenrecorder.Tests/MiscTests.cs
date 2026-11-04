@@ -109,7 +109,7 @@ public class FileNamerTests
     [Fact]
     public void Replaces_all_placeholders()
     {
-        Assert.Equal("Aufnahme_2026_10_26_21_30_22_663", FileNamer.Format(FileNamer.DefaultPattern, Time, 1));
+        Assert.Equal("Rec_2026_10_26_21_30_22_663", FileNamer.Format("Rec_<YYYY>_<MM>_<DD>_<HH>_<NN>_<SS>_<Z>", Time, 1));
         Assert.Equal("Clip 7 26.10", FileNamer.Format("Clip <Nr> <DD>.<MM>.", Time, 7)); // trailing dot is not allowed on Windows
     }
 
@@ -117,7 +117,7 @@ public class FileNamerTests
     public void Invalid_characters_become_underscores_and_empty_falls_back()
     {
         Assert.Equal("a_b_c", FileNamer.Format("a:b/c", Time, 1));
-        Assert.Equal("Aufnahme", FileNamer.Format("  ", Time, 1));
+        Assert.Equal(Strings.FileNamePrefix, FileNamer.Format("  ", Time, 1));
     }
 
     [Fact]
@@ -380,8 +380,10 @@ public class TranslationTests
         {
             CultureInfo.CurrentUICulture = new CultureInfo("de");
             Assert.Equal("Aufnahme", Strings.Record);
+            Assert.StartsWith("Aufnahme_<YYYY>", FileNamer.DefaultPattern);
             CultureInfo.CurrentUICulture = new CultureInfo("en");
             Assert.Equal("Record", Strings.Record);
+            Assert.StartsWith("Recording_<YYYY>", FileNamer.DefaultPattern);
         }
         finally
         {
