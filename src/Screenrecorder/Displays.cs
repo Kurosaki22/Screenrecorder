@@ -64,6 +64,18 @@ public static class Displays
         return list;
     }
 
+    /// <summary>
+    /// Vendor of DXGI adapter 0, where ddagrab and gfxcapture create their frames ("NVIDIA", "AMD", "Intel"
+    /// as in VideoEncoder.Vendor; "" if unknown).
+    /// </summary>
+    public static string CaptureGpuVendor()
+    {
+        using var factory = DXGI.CreateDXGIFactory1<IDXGIFactory1>();
+        if (factory.EnumAdapters1(0, out var adapter).Failure) return "";
+        using (adapter)
+            return adapter.Description1.VendorId switch { 0x10DE => "NVIDIA", 0x1002 => "AMD", 0x8086 => "Intel", _ => "" };
+    }
+
     public static PixelRect VirtualDesktop(IReadOnlyList<Display> displays)
     {
         int l = displays.Min(d => d.Bounds.X), t = displays.Min(d => d.Bounds.Y);

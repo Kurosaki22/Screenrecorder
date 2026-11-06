@@ -9,8 +9,9 @@ public class FfmpegArgsTests
     static readonly AudioInput Sys = new(@"\\.\pipe\sys", "f32le", 48000, 2);
     static readonly AudioInput Mic = new(@"\\.\pipe\mic", "f32le", 44100, 1);
 
-    static RecordOptions Options(CaptureArea area, VideoEncoder encoder, int fps = 30, int quality = 80, bool cursor = true) =>
-        new(area, encoder, fps, quality, cursor, SystemAudio: false, Microphone: false);
+    static RecordOptions Options(CaptureArea area, VideoEncoder encoder, int fps = 30, int quality = 80, bool cursor = true,
+        string gpu = "NVIDIA") =>
+        new(area, encoder, fps, quality, cursor, SystemAudio: false, Microphone: false, CaptureGpu: gpu);
 
     static readonly CaptureArea Small = new(Grabber.DesktopDuplication, new PixelRect(0, 0, 640, 360));
     static readonly MonitorInfo Monitor4K = new(12345, new PixelRect(0, 0, 3840, 2160));
@@ -88,6 +89,15 @@ public class FfmpegArgsTests
         var args = FfmpegArgs.Build(Options(Small, Nvenc), [], "o.mp4");
         Assert.DoesNotContain("hwdownload,format=bgra", args);
         Assert.Contains("-c:v h264_nvenc", Line(args));
+    }
+
+    [Theory]
+    [InlineData("AMD")] // NVIDIA card without a monitor, recording on the iGPU's screen
+    [InlineData("")]    // unknown capture GPU
+    public void Nvenc_downloads_frames_captured_on_another_gpu(string gpu)
+    {
+        Assert.Contains("-vf hwdownload,format=bgra", Line(FfmpegArgs.Build(Options(Small, Nvenc, gpu: gpu), [], "o.mp4")));
+        Assert.Contains("-vf fps=30,hwdownload,format=bgra", Line(FfmpegArgs.Build(Options(Gfx, Nvenc, gpu: gpu), [], "o.mp4")));
     }
 
     [Fact]

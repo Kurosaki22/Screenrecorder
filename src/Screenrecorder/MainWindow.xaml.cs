@@ -258,7 +258,8 @@ public partial class MainWindow : Window
             ? new CaptureArea(Grabber.GraphicsCapture, rect, Window: captureWindow)
             : Displays.Locate(rect, displays, graphicsCapture ? Native.Monitors() : null);
         var options = new RecordOptions(area, encoders!.First(x => x.Name == settings.Encoder),
-            settings.Fps, settings.Quality, settings.ShowCursor, settings.SystemAudio, settings.Microphone, systemChannel, micChannel);
+            settings.Fps, settings.Quality, settings.ShowCursor, settings.SystemAudio, settings.Microphone, systemChannel, micChannel,
+            Displays.CaptureGpuVendor());
         try
         {
             Directory.CreateDirectory(settings.OutputFolder);
