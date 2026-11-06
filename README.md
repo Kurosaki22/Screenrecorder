@@ -50,7 +50,7 @@ a freely definable capture area, and system sound + microphone.
 
 ## Installation
 
-Download `Screenrecorder-vX.Y.Z.exe` from the release and run it, that's all. The embedded LGPL `ffmpeg.exe` is
+Download `Screenrecorder.exe` from the release and run it, that's all. The embedded LGPL `ffmpeg.exe` is
 extracted to `%LOCALAPPDATA%\Screenrecorder\ffmpeg\<version>\` on first start.
 An `ffmpeg.exe` of your own next to the EXE takes precedence.
 

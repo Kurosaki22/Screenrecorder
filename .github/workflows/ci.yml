@@ -54,10 +54,9 @@ jobs:
           dotnet publish src/Screenrecorder -c Release -r win-x64 --self-contained `
             -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:EnableCompressionInSingleFile=true `
             -p:Version=$($tag.TrimStart('v')) -o dist
-          Move-Item dist/Screenrecorder.exe "Screenrecorder-$tag.exe"
 
       - name: Release
         if: startsWith(github.ref, 'refs/tags/v')
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create ${{ github.ref_name }} --generate-notes "Screenrecorder-${{ github.ref_name }}.exe" THIRD-PARTY-NOTICES.md
+        run: gh release create ${{ github.ref_name }} --generate-notes dist/Screenrecorder.exe THIRD-PARTY-NOTICES.md
