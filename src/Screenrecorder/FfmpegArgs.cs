@@ -5,10 +5,12 @@ public sealed record AudioInput(string PipePath, string SampleFormat, int Sample
 
 /// <summary>
 /// Everything one recording segment needs besides the output path. The channels carry the mixer's live gain
-/// and receive level peaks; null means unity gain and no meter.
+/// and receive level peaks; null means unity gain and no meter. CaptureGpu: vendor of the GPU the grabber's
+/// frames live on (see Displays.CaptureGpuVendor); "" = unknown, frames are downloaded.
 /// </summary>
 public sealed record RecordOptions(CaptureArea Area, VideoEncoder Encoder, int Fps, int Quality, bool ShowCursor,
-    bool SystemAudio, bool Microphone, AudioChannel? SystemChannel = null, AudioChannel? MicChannel = null);
+    bool SystemAudio, bool Microphone, AudioChannel? SystemChannel = null, AudioChannel? MicChannel = null,
+    string CaptureGpu = "");
 
 public static class FfmpegArgs
 {
@@ -62,7 +64,9 @@ public static class FfmpegArgs
         }
 
         // GPU grabbers deliver D3D11 frames; encoders that can't take them get a download to system memory.
-        if (o.Area.Grabber != Grabber.Gdi && !o.Encoder.TakesD3D11)
+        // NVENC can't open a session on another vendor's device ("no encode device"), e.g. when the NVIDIA card
+        // has no monitor and the iGPU is adapter 0.
+        if (o.Area.Grabber != Grabber.Gdi && !(o.Encoder.TakesD3D11 && o.Encoder.Vendor == o.CaptureGpu))
             filters.Add("hwdownload,format=bgra");
         if (filters.Count > 0)
             a.AddRange(["-vf", string.Join(",", filters)]);

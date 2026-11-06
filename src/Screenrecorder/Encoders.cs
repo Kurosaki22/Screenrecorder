@@ -3,7 +3,8 @@ using System.Diagnostics;
 namespace Screenrecorder;
 
 /// <summary>
-/// A video encoder ffmpeg may offer. TakesD3D11: accepts ddagrab's GPU frames without a download.
+/// A video encoder ffmpeg may offer. TakesD3D11: accepts the grabbers' GPU frames without a download, as long as
+/// they were captured on a GPU of the same Vendor.
 /// Quality 1..100 maps linearly from Worst to Best on QualityFlag (a CQ/CRF level, or a bitrate when Unit is "M").
 /// </summary>
 public sealed record VideoEncoder(string Name, string Label, string Vendor, bool TakesD3D11,
