@@ -4,6 +4,7 @@ using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
+using System.Windows.Documents;
 using System.Windows.Interop;
 using System.Windows.Threading;
 using Screenrecorder.Resources;
@@ -26,6 +27,7 @@ public partial class MainWindow : Window
     readonly DispatcherTimer statusTimer = new() { Interval = TimeSpan.FromMilliseconds(500) };
     string? ffmpeg;
     List<VideoEncoder>? encoders;
+    bool gpuCapture = true; // a D3D11 device exists; false in VMs/remote sessions, where only gdigrab works
     bool graphicsCapture; // gfxcapture usable: smoother than ddagrab and works on every GPU's monitor
     RecordingSession? session;
     bool busy, minimizedForRecording;
@@ -45,6 +47,8 @@ public partial class MainWindow : Window
 
         Mixer.Bind(() => this.settings, systemChannel, micChannel);
         Mixer.SourcesChanged += UpdateIdleMeter;
+        Mixer.SourcesChanged += RefreshReadout;
+        RefreshReadout();
         MixerPopup.Opened += (_, _) =>
         {
             Mixer.Start();
@@ -91,8 +95,10 @@ public partial class MainWindow : Window
             return;
         }
         var detectGraphicsCapture = Encoders.GraphicsCaptureWorksAsync(ffmpeg);
+        var detectGpu = Encoders.GpuCaptureWorksAsync(ffmpeg);
         encoders = await Encoders.DetectAsync(ffmpeg);
-        graphicsCapture = await detectGraphicsCapture;
+        gpuCapture = await detectGpu;
+        graphicsCapture = await detectGraphicsCapture && gpuCapture;
         Title = "Screenrecorder";
         if (encoders.Count == 0)
         {
@@ -101,6 +107,7 @@ public partial class MainWindow : Window
         }
         if (!encoders.Any(x => x.Name == settings.Encoder))
             settings.Encoder = encoders[0].Name;
+        RefreshReadout();
         RecordButton.IsEnabled = true;
     }
 
@@ -256,7 +263,7 @@ public partial class MainWindow : Window
 
         var area = settings.Area == AreaMode.Window
             ? new CaptureArea(Grabber.GraphicsCapture, rect, Window: captureWindow)
-            : Displays.Locate(rect, displays, graphicsCapture ? Native.Monitors() : null);
+            : Displays.Locate(rect, displays, graphicsCapture ? Native.Monitors() : null, gpuCapture);
         var options = new RecordOptions(area, encoders!.First(x => x.Name == settings.Encoder),
             settings.Fps, settings.Quality, settings.ShowCursor, settings.SystemAudio, settings.Microphone, systemChannel, micChannel,
             Displays.CaptureGpuVendor());
@@ -333,6 +340,7 @@ public partial class MainWindow : Window
             statusTimer.Stop();
             miniBar.Hide();
             Title = "Screenrecorder";
+            RefreshReadout();
             PauseGlyph.Text = "";
             PauseText.Text = Strings.Pause;
             if (minimizedForRecording)
@@ -370,6 +378,8 @@ public partial class MainWindow : Window
             ? Strings.WaitingForWindow
             : $"{label} {session.Elapsed:hh\\:mm\\:ss} · {mb:0.0} MB";
         Title = dot + text;
+        StateValue.Text = text;
+        StateValue.SetResourceReference(TextElement.ForegroundProperty, session.IsPaused ? "WarnBrush" : "RecordTextBrush");
         if (tray is not null) tray.Text = (dot + text)[..Math.Min(127, dot.Length + text.Length)]; // NotifyIcon allows 127 chars
         miniBar.Update(text, session.IsPaused,
             WithHotkey(session.IsPaused ? Strings.Resume : Strings.Pause, PauseHotkey.Text), WithHotkey(Strings.Stop, RecordHotkey.Text));
@@ -594,7 +604,7 @@ public partial class MainWindow : Window
             {
                 if (items.Count > 0) items.Add(new Separator());
                 items.Add(Item(group.Key, () => { }, enabled: false));
-                items.AddRange(group.Select(x => Item(x.Label, () => settings.Encoder = x.Name, x.Name == settings.Encoder)));
+                items.AddRange(group.Select(x => Item(x.Label, () => { settings.Encoder = x.Name; RefreshReadout(); }, x.Name == settings.Encoder)));
             }
         ShowMenu(CodecsButton, items); // frame rate lives in Settings > Recording
     }
@@ -630,7 +640,27 @@ public partial class MainWindow : Window
             settings.Region = frame.Region;
             settings.Save();
             App.ApplyTheme(settings.Theme);
+            RefreshReadout();
         }
         RegisterHotkeys();
+    }
+
+    /// <summary>Status bar: state, frame rate and encoder, and which audio sources are on (off = dimmed and struck through).</summary>
+    void RefreshReadout()
+    {
+        VideoValue.Text = $"{settings.Fps} fps · {settings.Encoder}";
+        SetSource(SystemValue, settings.SystemAudio);
+        SetSource(MicValue, settings.Microphone);
+        if (session is null)
+        {
+            StateValue.Text = Strings.StatusIdle;
+            StateValue.SetResourceReference(TextElement.ForegroundProperty, "InkBrush");
+        }
+    }
+
+    static void SetSource(System.Windows.Documents.Run run, bool on)
+    {
+        run.TextDecorations = on ? null : TextDecorations.Strikethrough;
+        run.SetResourceReference(TextElement.ForegroundProperty, on ? "InkBrush" : "InkMutedBrush");
     }
 }

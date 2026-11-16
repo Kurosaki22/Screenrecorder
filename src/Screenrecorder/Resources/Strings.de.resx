@@ -54,6 +54,10 @@
   <data name="HotkeyPauseLabel" xml:space="preserve"><value>Aufnahme pausieren / fortsetzen</value></data>
   <data name="HotkeySelectAreaLabel" xml:space="preserve"><value>Bereich auswählen</value></data>
   <data name="HotkeyHelp" xml:space="preserve"><value>In ein Feld klicken und die gewünschte Taste drücken (optional mit Strg, Alt, Umschalt). Entf oder Rücktaste entfernt das Kürzel.</value></data>
+  <data name="HotkeyNone" xml:space="preserve"><value>nicht belegt</value></data>
+  <data name="StatusIdle" xml:space="preserve"><value>bereit</value></data>
+  <data name="StatusSystem" xml:space="preserve"><value>System</value></data>
+  <data name="StatusMic" xml:space="preserve"><value>Mikro</value></data>
   <data name="HotkeyDuplicate" xml:space="preserve"><value>Das Tastenkürzel {0} ist mehrfach vergeben.</value></data>
   <data name="OutputFolder" xml:space="preserve"><value>Ausgabepfad:</value></data>
   <data name="FileName" xml:space="preserve"><value>Dateiname:</value></data>

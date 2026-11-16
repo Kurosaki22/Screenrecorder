@@ -72,6 +72,13 @@ public static class Encoders
         return exitCode == 0 && output.Contains("Filter gfxcapture");
     }
 
+    /// <summary>
+    /// Whether a D3D11 video device can be created at all. Without one (VM, remote session, broken driver) gfxcapture
+    /// and ddagrab both fail at start, so recording has to fall back to gdigrab.
+    /// </summary>
+    public static async Task<bool> GpuCaptureWorksAsync(string ffmpeg) =>
+        (await RunAsync(ffmpeg, "-hide_banner -loglevel error -init_hw_device d3d11va=d -f lavfi -i color=s=64x64:d=0.1 -f null -")).exitCode == 0;
+
     static async Task<(int exitCode, string output)> RunAsync(string exe, string args)
     {
         var psi = new ProcessStartInfo(exe, args) { RedirectStandardOutput = true, RedirectStandardError = true, CreateNoWindow = true };

@@ -12,6 +12,16 @@ using Xunit.Abstractions;
 namespace Screenrecorder.Tests;
 
 /// <summary>
+/// Whether this PC can create a D3D11 device. Without one (VM, remote session) gfxcapture and ddagrab can't run and the
+/// app records with gdigrab, so the tests do the same; tests that need a GPU grabber skip themselves.
+/// </summary>
+static class TestGpu
+{
+    public static readonly Lazy<bool> Available = new(() =>
+        Recorder.FindFfmpeg() is string ffmpeg && Encoders.GpuCaptureWorksAsync(ffmpeg).GetAwaiter().GetResult());
+}
+
+/// <summary>
 /// Needs a real desktop, audio output and ffmpeg/ffprobe; excluded in CI via --filter Category!=Integration.
 /// The sync test briefly flashes a window in the top-left corner and plays a quiet 15 kHz tone
 /// (high enough that other audio playing on the PC does not trigger the detector).
@@ -86,7 +96,9 @@ public class RecorderIntegrationTests(ITestOutputHelper log)
             log.WriteLine($"video {video:0.000}s, audio {audio:0.000}s, offset {(audio - video) * 1000:0} ms");
             Assert.InRange(video, 1.0, 3.0);
             // Within ~3 frames at 60 fps; screen compositing and audio output latency add a little jitter.
-            Assert.True(Math.Abs(audio - video) < 0.06, $"video changes at {video:0.000}s, tone starts at {audio:0.000}s");
+            // gdigrab (no D3D11 device, e.g. a VM) sees a flash 90-160 ms later (software compositing), so it gets a wider limit.
+            var limit = TestGpu.Available.Value ? 0.06 : 0.25;
+            Assert.True(Math.Abs(audio - video) < limit, $"video changes at {video:0.000}s, tone starts at {audio:0.000}s");
         }
         finally
         {
@@ -139,7 +151,9 @@ public class RecorderIntegrationTests(ITestOutputHelper log)
         try
         {
             // ddagrab repeats frames on an idle screen, so this checks the file format, independent of desktop activity.
-            var area = new CaptureArea(Grabber.DesktopDuplication, new PixelRect(0, 0, 640, 360), displays[0].OutputIndex);
+            var area = TestGpu.Available.Value
+                ? new CaptureArea(Grabber.DesktopDuplication, new PixelRect(0, 0, 640, 360), displays[0].OutputIndex)
+                : new CaptureArea(Grabber.Gdi, new PixelRect(0, 0, 640, 360));
             var options = new RecordOptions(area, Encoder, 30, 80, ShowCursor: true, SystemAudio: false, Microphone: false);
             var psi = new ProcessStartInfo(ffmpeg) { RedirectStandardOutput = true, CreateNoWindow = true };
             foreach (var arg in FfmpegArgs.Build(options, [], output)) psi.ArgumentList.Add(arg);
@@ -164,6 +178,11 @@ public class RecorderIntegrationTests(ITestOutputHelper log)
     {
         var ffmpeg = Recorder.FindFfmpeg();
         if (ffmpeg is null) return;
+        if (!TestGpu.Available.Value)
+        {
+            log.WriteLine("skipped: no D3D11 device, window capture needs gfxcapture");
+            return;
+        }
         // Animated window: frames flow, video has the window's (even) client size.
         using (var window = new TestForm(() =>
         {
@@ -268,7 +287,7 @@ public class RecorderIntegrationTests(ITestOutputHelper log)
         new(new CaptureArea(Grabber.GraphicsCapture, default, Window: hwnd), Encoder, 30, 80, ShowCursor: false, SystemAudio: false, Microphone: false);
 
     static RecordOptions Options(IReadOnlyList<Display> displays, PixelRect rect) =>
-        new(Displays.Locate(rect, displays, Native.Monitors()), Encoder, 30, 80, ShowCursor: true, SystemAudio: true, Microphone: false);
+        new(Displays.Locate(rect, displays, Native.Monitors(), TestGpu.Available.Value), Encoder, 30, 80, ShowCursor: true, SystemAudio: true, Microphone: false);
 
     /// <summary>Duration per stream codec, e.g. { h264: 3.0, opus: 2.99 }.</summary>
     static Dictionary<string, double> Streams(string file) =>
@@ -445,6 +464,7 @@ public class ExcludeFromCaptureTests
     public void Excluded_window_does_not_show_up_in_the_capture(Grabber grabber)
     {
         if (Recorder.FindFfmpeg() is not string ffmpeg || Displays.Enumerate().FirstOrDefault(d => d.IsPrimary) is not Display primary) return;
+        if (!TestGpu.Available.Value) return; // both grabbers need a D3D11 device; the app falls back to gdigrab there
         var monitor = Native.Monitors().First(m => m.Bounds.X == 0 && m.Bounds.Y == 0);
         // Top-left 200x150 of the primary monitor, the corner the red test window covers.
         var source = grabber == Grabber.GraphicsCapture

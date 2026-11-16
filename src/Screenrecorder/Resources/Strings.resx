@@ -54,6 +54,10 @@
   <data name="HotkeyPauseLabel" xml:space="preserve"><value>Pause / resume recording</value></data>
   <data name="HotkeySelectAreaLabel" xml:space="preserve"><value>Select area</value></data>
   <data name="HotkeyHelp" xml:space="preserve"><value>Click a field and press the key you want (optionally with Ctrl, Alt, Shift). Delete or Backspace removes the hotkey.</value></data>
+  <data name="HotkeyNone" xml:space="preserve"><value>not set</value></data>
+  <data name="StatusIdle" xml:space="preserve"><value>idle</value></data>
+  <data name="StatusSystem" xml:space="preserve"><value>system</value></data>
+  <data name="StatusMic" xml:space="preserve"><value>mic</value></data>
   <data name="HotkeyDuplicate" xml:space="preserve"><value>The hotkey {0} is assigned more than once.</value></data>
   <data name="OutputFolder" xml:space="preserve"><value>Output folder:</value></data>
   <data name="FileName" xml:space="preserve"><value>File name:</value></data>

@@ -88,15 +88,16 @@ public static class Displays
 
     /// <summary>
     /// Region fully on one monitor → gfxcapture when available (pass its monitors), else ddagrab;
-    /// spanning monitors → gdigrab clamped to the desktop.
+    /// spanning monitors, or no usable GPU (gpuCapture false) → gdigrab clamped to the desktop.
     /// </summary>
-    public static CaptureArea Locate(PixelRect region, IReadOnlyList<Display> displays, IReadOnlyList<MonitorInfo>? graphicsCaptureMonitors = null)
+    public static CaptureArea Locate(PixelRect region, IReadOnlyList<Display> displays, IReadOnlyList<MonitorInfo>? graphicsCaptureMonitors = null,
+        bool gpuCapture = true)
     {
         region = Even(region);
-        foreach (var m in graphicsCaptureMonitors ?? [])
+        foreach (var m in gpuCapture ? graphicsCaptureMonitors ?? [] : [])
             if (m.Bounds.Contains(region))
                 return new CaptureArea(Grabber.GraphicsCapture, Relative(region, m.Bounds), Monitor: m);
-        foreach (var d in displays)
+        foreach (var d in gpuCapture ? displays : [])
             if (d.Bounds.Contains(region))
                 return new CaptureArea(Grabber.DesktopDuplication, Relative(region, d.Bounds), d.OutputIndex);
 

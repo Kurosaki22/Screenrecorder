@@ -4,14 +4,14 @@
              xmlns:res="clr-namespace:Screenrecorder.Resources"
              Width="380">
     <UserControl.Resources>
-        <!-- OBS colors: green below -20 dB, yellow up to -9 dB, red above; offsets are (dB + 60) / 60 -->
+        <!-- Ink below -20 dB, amber up to -9 dB, red above; offsets are (dB + 60) / 60 -->
         <LinearGradientBrush x:Key="MeterBrush" StartPoint="0,0" EndPoint="1,0">
-            <GradientStop Color="#4CAF50" Offset="0" />
-            <GradientStop Color="#4CAF50" Offset="0.6667" />
-            <GradientStop Color="#FFC107" Offset="0.6667" />
-            <GradientStop Color="#FFC107" Offset="0.85" />
-            <GradientStop Color="#F44336" Offset="0.85" />
-            <GradientStop Color="#F44336" Offset="1" />
+            <GradientStop Color="{DynamicResource InkColor}" Offset="0" />
+            <GradientStop Color="{DynamicResource InkColor}" Offset="0.6667" />
+            <GradientStop Color="#E8A93A" Offset="0.6667" />
+            <GradientStop Color="#E8A93A" Offset="0.85" />
+            <GradientStop Color="#E5484D" Offset="0.85" />
+            <GradientStop Color="#E5484D" Offset="1" />
         </LinearGradientBrush>
         <Style x:Key="Meter" TargetType="Grid">
             <Setter Property="Height" Value="10" />
@@ -20,9 +20,9 @@
     </UserControl.Resources>
 
     <!-- Fluent's solid brushes: the window background is Mica, which a popup cannot draw -->
-    <Border x:Name="Panel" CornerRadius="8" Padding="16,12" BorderThickness="1" BorderBrush="#40808080"
-            Background="{DynamicResource SolidBackgroundFillColorBaseBrush}"
-            TextElement.Foreground="{DynamicResource TextFillColorPrimaryBrush}">
+    <Border x:Name="Panel" CornerRadius="8" Padding="16,12" BorderThickness="1" BorderBrush="{DynamicResource HairlineBrush}"
+            Background="{DynamicResource GroundBrush}" TextElement.FontFamily="{StaticResource TextFont}"
+            TextElement.Foreground="{DynamicResource InkBrush}">
         <StackPanel>
             <DockPanel>
                 <TextBlock x:Name="SystemValue" DockPanel.Dock="Right" VerticalAlignment="Center" Opacity="0.8" />
@@ -31,7 +31,7 @@
             <Grid x:Name="SystemMeter" Style="{StaticResource Meter}">
                 <Rectangle Fill="{StaticResource MeterBrush}" RadiusX="2" RadiusY="2" />
                 <!-- dark mask from the right uncovers the level; the thin bar marks the held peak -->
-                <Rectangle x:Name="SystemMask" Fill="#E0202020" HorizontalAlignment="Right" />
+                <Rectangle x:Name="SystemMask" Fill="{DynamicResource SurfaceLowBrush}" Opacity="0.88" HorizontalAlignment="Right" />
                 <Rectangle x:Name="SystemPeak" Fill="White" Width="2" HorizontalAlignment="Left" />
             </Grid>
             <Slider x:Name="SystemSlider" Minimum="-40" Maximum="12" SmallChange="0.5" LargeChange="3"
@@ -43,7 +43,7 @@
             </DockPanel>
             <Grid x:Name="MicMeter" Style="{StaticResource Meter}">
                 <Rectangle Fill="{StaticResource MeterBrush}" RadiusX="2" RadiusY="2" />
-                <Rectangle x:Name="MicMask" Fill="#E0202020" HorizontalAlignment="Right" />
+                <Rectangle x:Name="MicMask" Fill="{DynamicResource SurfaceLowBrush}" Opacity="0.88" HorizontalAlignment="Right" />
                 <Rectangle x:Name="MicPeak" Fill="White" Width="2" HorizontalAlignment="Left" />
             </Grid>
             <Slider x:Name="MicSlider" Minimum="-40" Maximum="12" SmallChange="0.5" LargeChange="3"
