@@ -1,0 +1,18 @@
+﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <!-- Light palette: same keys as the other theme file, swapped by App.ApplyTheme -->
+    <SolidColorBrush x:Key="GroundBrush" Color="#F5F5F7" />
+    <SolidColorBrush x:Key="SurfaceBrush" Color="#EAEAEE" />
+    <SolidColorBrush x:Key="SurfaceRaisedBrush" Color="#DEDEE4" />
+    <SolidColorBrush x:Key="SurfaceLowBrush" Color="#EEEEF2" />
+    <SolidColorBrush x:Key="HairlineBrush" Color="#D4D4DA" />
+    <Color x:Key="InkColor">#17171A</Color>
+    <SolidColorBrush x:Key="InkBrush" Color="#17171A" />
+    <SolidColorBrush x:Key="InkMutedBrush" Color="#62626B" />
+    <SolidColorBrush x:Key="OnInkBrush" Color="#F5F5F7" />
+    <SolidColorBrush x:Key="RecordBrush" Color="#D1343A" />
+    <SolidColorBrush x:Key="RecordTextBrush" Color="#C0262C" />
+    <SolidColorBrush x:Key="WarnBrush" Color="#B7791F" />
+    <SolidColorBrush x:Key="HoverWashBrush" Color="#14000000" />
+    <SolidColorBrush x:Key="PressWashBrush" Color="#26000000" />
+</ResourceDictionary>

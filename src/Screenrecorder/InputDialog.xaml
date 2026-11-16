@@ -3,13 +3,13 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:res="clr-namespace:Screenrecorder.Resources"
         Width="360" SizeToContent="Height" ResizeMode="NoResize" ShowInTaskbar="False"
-        WindowStartupLocation="CenterOwner" FocusManager.FocusedElement="{Binding ElementName=Input}">
+        WindowStartupLocation="CenterOwner" Background="{DynamicResource GroundBrush}" FontFamily="{StaticResource TextFont}" FocusManager.FocusedElement="{Binding ElementName=Input}">
     <StackPanel Margin="16">
         <TextBlock x:Name="Prompt" TextWrapping="Wrap" Margin="0,0,0,8" />
         <TextBox x:Name="Input" />
         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
-            <Button Content="{x:Static res:Strings.Ok}" IsDefault="True" MinWidth="80" Click="Ok_Click" />
-            <Button Content="{x:Static res:Strings.Cancel}" IsCancel="True" MinWidth="80" Margin="8,0,0,0" />
+            <Button Content="{x:Static res:Strings.Ok}" Style="{StaticResource PrimaryButton}" IsDefault="True" MinWidth="80" Click="Ok_Click" />
+            <Button Content="{x:Static res:Strings.Cancel}" Style="{StaticResource ActionButton}" IsCancel="True" MinWidth="80" Margin="8,0,0,0" />
         </StackPanel>
     </StackPanel>
 </Window>

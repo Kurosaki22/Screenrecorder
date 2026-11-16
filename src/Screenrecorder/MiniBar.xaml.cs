@@ -9,11 +9,11 @@ namespace Screenrecorder;
 public partial class MiniBar : Window
 {
     const int GapPx = 6;
-    static readonly Brush RecordingBrush = new SolidColorBrush(Color.FromRgb(0xE5, 0x39, 0x35));
-    static readonly Brush PausedBrush = new SolidColorBrush(Color.FromRgb(0xFB, 0x8C, 0x00));
+    static readonly Brush RecordingBrush = new SolidColorBrush(Color.FromRgb(0xE5, 0x48, 0x4D));
+    static readonly Brush PausedBrush = new SolidColorBrush(Color.FromRgb(0xE8, 0xA9, 0x3A));
 
     static readonly Brush[] HeartbeatBrushes =
-        [new SolidColorBrush(Color.FromArgb(0xF0, 0x1E, 0x1E, 0x1E)), new SolidColorBrush(Color.FromArgb(0xF0, 0x1E, 0x1E, 0x1F))];
+        [new SolidColorBrush(Color.FromArgb(0xF0, 0x14, 0x14, 0x16)), new SolidColorBrush(Color.FromArgb(0xF0, 0x14, 0x14, 0x17))];
 
     readonly DispatcherTimer heartbeat = new() { Interval = TimeSpan.FromMilliseconds(30) };
     int beat;

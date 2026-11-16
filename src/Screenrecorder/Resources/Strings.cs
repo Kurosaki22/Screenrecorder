@@ -60,6 +60,10 @@ public static class Strings
     public static string HotkeyPauseLabel => Get();
     public static string HotkeySelectAreaLabel => Get();
     public static string HotkeyHelp => Get();
+    public static string HotkeyNone => Get();
+    public static string StatusIdle => Get();
+    public static string StatusSystem => Get();
+    public static string StatusMic => Get();
     public static string HotkeyDuplicate => Get();
     public static string OutputFolder => Get();
     public static string FileName => Get();

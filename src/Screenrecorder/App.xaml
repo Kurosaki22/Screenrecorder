@@ -3,5 +3,119 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              ThemeMode="System" ShutdownMode="OnMainWindowClose">
     <Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <!-- Palette; App.ApplyTheme swaps this entry for Light.xaml -->
+                <ResourceDictionary Source="Themes/Dark.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+
+            <FontFamily x:Key="TextFont">Segoe UI Variable Display, Segoe UI</FontFamily>
+            <FontFamily x:Key="MonoFont">Cascadia Mono, Consolas</FontFamily>
+            <FontFamily x:Key="IconFont">Segoe Fluent Icons, Segoe MDL2 Assets</FontFamily>
+
+            <Style x:Key="DockFocus">
+                <Setter Property="Control.Template">
+                    <Setter.Value>
+                        <ControlTemplate>
+                            <Rectangle Margin="-2" RadiusX="8" RadiusY="8" StrokeThickness="2" Stroke="{DynamicResource InkBrush}" />
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <!-- Own template instead of Fluent's: its hover/disabled boxes recolor the red record button and draw grey boxes -->
+            <Style x:Key="Cell" TargetType="Button">
+                <Setter Property="Background" Value="{DynamicResource SurfaceBrush}" />
+                <Setter Property="Foreground" Value="{DynamicResource InkBrush}" />
+                <Setter Property="BorderBrush" Value="{DynamicResource HairlineBrush}" />
+                <Setter Property="BorderThickness" Value="0" />
+                <Setter Property="Margin" Value="2" />
+                <Setter Property="Padding" Value="8,0" />
+                <Setter Property="Cursor" Value="Hand" />
+                <Setter Property="FocusVisualStyle" Value="{StaticResource DockFocus}" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Button">
+                            <Border x:Name="Bg" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="6" SnapsToDevicePixels="True">
+                                <Border x:Name="Wash" CornerRadius="6" Background="Transparent" Padding="{TemplateBinding Padding}">
+                                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                </Border>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="Wash" Property="Background" Value="{DynamicResource HoverWashBrush}" />
+                                </Trigger>
+                                <Trigger Property="IsPressed" Value="True">
+                                    <Setter TargetName="Wash" Property="Background" Value="{DynamicResource PressWashBrush}" />
+                                </Trigger>
+                                <Trigger Property="IsEnabled" Value="False">
+                                    <Setter TargetName="Bg" Property="Opacity" Value="0.4" />
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <Style x:Key="RecordCell" TargetType="Button" BasedOn="{StaticResource Cell}">
+                <Setter Property="Background" Value="{DynamicResource RecordBrush}" />
+                <Setter Property="Foreground" Value="White" />
+            </Style>
+
+            <!-- Dialog buttons -->
+            <Style x:Key="ActionButton" TargetType="Button" BasedOn="{StaticResource Cell}">
+                <Setter Property="BorderThickness" Value="1" />
+                <Setter Property="Margin" Value="0" />
+                <Setter Property="MinWidth" Value="96" />
+                <Setter Property="Height" Value="32" />
+                <Setter Property="Padding" Value="16,0" />
+            </Style>
+            <Style x:Key="PrimaryButton" TargetType="Button" BasedOn="{StaticResource ActionButton}">
+                <Setter Property="Background" Value="{DynamicResource InkBrush}" />
+                <Setter Property="Foreground" Value="{DynamicResource OnInkBrush}" />
+                <Setter Property="BorderBrush" Value="{DynamicResource InkBrush}" />
+            </Style>
+
+            <!-- Settings sidebar entry -->
+            <Style x:Key="SidebarItem" TargetType="ListBoxItem">
+                <Setter Property="Foreground" Value="{DynamicResource InkMutedBrush}" />
+                <Setter Property="Padding" Value="12,8" />
+                <Setter Property="Margin" Value="0,0,0,2" />
+                <Setter Property="Cursor" Value="Hand" />
+                <Setter Property="FocusVisualStyle" Value="{StaticResource DockFocus}" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="ListBoxItem">
+                            <Border x:Name="Bg" Background="Transparent" CornerRadius="6" Padding="{TemplateBinding Padding}">
+                                <ContentPresenter VerticalAlignment="Center" />
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="Bg" Property="Background" Value="{DynamicResource HoverWashBrush}" />
+                                </Trigger>
+                                <Trigger Property="IsSelected" Value="True">
+                                    <Setter TargetName="Bg" Property="Background" Value="{DynamicResource SurfaceRaisedBrush}" />
+                                    <Setter Property="Foreground" Value="{DynamicResource InkBrush}" />
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <Style x:Key="Mono" TargetType="TextBlock">
+                <Setter Property="FontFamily" Value="{StaticResource MonoFont}" />
+                <Setter Property="FontSize" Value="12" />
+                <Setter Property="FontWeight" Value="Normal" />
+            </Style>
+
+            <Style x:Key="Glyph" TargetType="TextBlock">
+                <Setter Property="FontFamily" Value="{StaticResource IconFont}" />
+                <Setter Property="FontSize" Value="22" />
+                <Setter Property="HorizontalAlignment" Value="Center" />
+                <Setter Property="Margin" Value="0,0,0,6" />
+            </Style>
+        </ResourceDictionary>
     </Application.Resources>
 </Application>
